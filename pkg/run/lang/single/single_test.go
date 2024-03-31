@@ -19,8 +19,10 @@ func TestRun_error(t *testing.T) {
 		source    string
 		wantError string
 	}{
-		{"", "", "invalid language"},
-		{"X", "", "invalid language"},
+		{"", "", "no source"},
+		{"X", "", "no source"},
+		{"bash", "", "no source"},
+		{"X", "echo hello", "invalid language"},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.lang, func(t *testing.T) {

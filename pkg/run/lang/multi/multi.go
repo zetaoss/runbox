@@ -192,7 +192,7 @@ func Run(input types.MultiInput, extraOpts ...map[string]int) (*types.Output, er
 		if err == types.ErrInvalidLanguage {
 			return nil, types.ErrInvalidLanguage
 		}
-		return nil, fmt.Errorf("get_Run___Opts err: %w", err)
+		return nil, fmt.Errorf("getRunOpts err: %w", err)
 	}
 
 	// override extraOpts

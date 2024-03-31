@@ -14,19 +14,23 @@ type ResponseObj struct {
 	Data   types.Output `json:"-"`
 }
 
+var fakeErr Error = NoError
+
 func Single(c *gin.Context) {
 	var input types.SingleInput
-	if err := c.BindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "error": err.Error()})
+	if err := c.BindJSON(&input); err != nil || fakeErr == ErrBindJSON {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "error": ErrBindJSON})
 		return
 	}
 	output, err := single.Run(input)
-	if err != nil {
+	if err != nil || fakeErr == ErrUnknown {
 		switch err {
+		case types.ErrNoSource:
+			c.JSON(http.StatusBadRequest, gin.H{"status": "error", "error": err.Error()})
 		case types.ErrInvalidLanguage:
 			c.JSON(http.StatusBadRequest, gin.H{"status": "error", "error": err.Error()})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "error": ErrUnknown})
 		}
 		return
 	}

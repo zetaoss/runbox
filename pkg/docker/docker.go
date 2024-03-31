@@ -10,29 +10,9 @@ import (
 	"github.com/zetaoss/runbox/pkg/util"
 )
 
-type Log struct {
-	Log    string
-	Stream string
-}
+var fakeErr = NoError
 
 type Docker struct {
-}
-
-type Options struct {
-	Name           string
-	Image          string
-	Shell          string
-	Command        string
-	Env            []string
-	PidsLimit      int
-	TimeoutSeconds int
-	Binds          []string
-	WorkingDir     string
-}
-
-type Result struct {
-	Logs     []Log
-	ExitCode int
 }
 
 func New() *Docker {
@@ -69,7 +49,7 @@ func (d *Docker) Run(opts Options) (*Result, error) {
 		util.Run("docker rm -f " + containerID)
 	}()
 	logs, err := d.collectLogs(containerID)
-	if err != nil {
+	if err != nil || fakeErr == ErrCollectLogs {
 		return nil, fmt.Errorf("collectLogs err: %w", err)
 	}
 	return &Result{Logs: logs, ExitCode: exitCode}, nil
@@ -78,7 +58,6 @@ func (d *Docker) Run(opts Options) (*Result, error) {
 func (d *Docker) collectLogs(containerID string) ([]Log, error) {
 	logFilePath := fmt.Sprintf("/var/lib/docker/containers/%s/%s-json.log", containerID, containerID)
 	command := "cat " + logFilePath
-	// fmt.Println("command", command)
 	stdout, _, _ := util.Run(command)
 	var logs = []Log{}
 	scanner := bufio.NewScanner(strings.NewReader(stdout))
@@ -90,7 +69,7 @@ func (d *Docker) collectLogs(containerID string) ([]Log, error) {
 		}
 		logs = append(logs, logLine)
 	}
-	if err := scanner.Err(); err != nil {
+	if err := scanner.Err(); err != nil || fakeErr == ErrScanner {
 		log.Printf("warn: scanner: %s", err)
 	}
 	return logs, nil

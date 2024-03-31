@@ -6,5 +6,8 @@ import (
 )
 
 func Run(input types.SingleInput, extraOpts ...map[string]int) (*types.Output, error) {
+	if input.Source == "" {
+		return nil, types.ErrNoSource
+	}
 	return multi.Run(types.MultiInput{Lang: input.Lang, Files: []types.File{{Content: input.Source}}}, extraOpts...)
 }
