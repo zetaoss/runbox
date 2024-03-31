@@ -30,7 +30,8 @@ jobs:
     - run: |
         docker info
         docker run hello-world
-        find /var/lib/docker/
+        whoami
+        sudo find /var/lib/docker/
     - run: go test ./... -race -failfast
   
   goimports:
