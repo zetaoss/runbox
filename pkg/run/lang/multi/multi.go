@@ -250,7 +250,10 @@ func Run(input types.MultiInput, extraOpts ...map[string]int) (*types.Output, er
 		Env:            opts.Env,
 		WorkingDir:     opts.WorkingDir,
 	}
-	cli := docker.New()
+	cli, err := docker.New()
+	if err != nil {
+		return nil, fmt.Errorf("docker new err: %w", err)
+	}
 	runResult, err := cli.Run(dockerOptions)
 	if err != nil {
 		return nil, fmt.Errorf("Run err: %w", err)

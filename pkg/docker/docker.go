@@ -5,18 +5,34 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/zetaoss/runbox/pkg/util"
+	"k8s.io/klog/v2"
 )
 
-var fakeErr = NoError
+var (
+	fakeErr    = NoError
+	historyDir = "/tmp/history"
+)
 
 type Docker struct {
 }
 
-func New() *Docker {
-	return &Docker{}
+func New() (*Docker, error) {
+	if err := os.MkdirAll(historyDir, 0644); err != nil {
+		return nil, fmt.Errorf("MkdirAll err: %w", err)
+	}
+	return &Docker{}, nil
+}
+
+func saveHistory(opts Options, command string) {
+	file := historyDir + opts.Name
+	err := os.WriteFile(file, []byte(command), 0644)
+	if err != nil {
+		klog.Warningf("cannot WriteFile file=%s err=%s", file, err.Error())
+	}
 }
 
 func (d *Docker) Run(opts Options) (*Result, error) {
@@ -42,6 +58,9 @@ func (d *Docker) Run(opts Options) (*Result, error) {
 	}
 	command += " " + opts.Image
 	command += " " + opts.Command
+
+	// save history
+	saveHistory(opts, command)
 	_, _, exitCode := util.Run(command)
 	stdout, _, _ := util.Run("docker inspect  --format={{.Id}} " + opts.Name)
 	containerID := strings.TrimRight(stdout, "\n")

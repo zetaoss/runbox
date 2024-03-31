@@ -8,6 +8,17 @@ const (
 	KindMulti
 )
 
+func (k Kind) String() string {
+	switch k {
+	case KindSingle:
+		return "single"
+	case KindMulti:
+		return "multi"
+	default:
+		return "docker"
+	}
+}
+
 type Options struct {
 	Kind           Kind
 	Name           string

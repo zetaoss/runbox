@@ -8,7 +8,59 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var docker *Docker = New()
+var docker *Docker
+
+func init() {
+	var err error
+	docker, err = New()
+	if err != nil {
+		panic(err)
+	}
+}
+
+func TestNew(t *testing.T) {
+	testCases := []struct {
+		historyDir string
+		wantDocker *Docker
+		wantError  string
+	}{
+		{"", nil, "no such file or directory"},
+		{"/tmp/history", &Docker{}, ""},
+	}
+	for _, tc := range testCases {
+		t.Run("", func(t *testing.T) {
+			historyDir = tc.historyDir
+			defer func() {
+				historyDir = "/tmp/history"
+			}()
+			d, err := New()
+			if tc.wantError == "" {
+				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, tc.wantError)
+			}
+			require.Equal(t, tc.wantDocker, d)
+		})
+	}
+}
+
+func TestSaveHistory(t *testing.T) {
+	testCases := []struct {
+		historyDir string
+	}{
+		{""},
+		{"/tmp/history"},
+	}
+	for _, tc := range testCases {
+		t.Run("", func(t *testing.T) {
+			historyDir = tc.historyDir
+			defer func() {
+				historyDir = "/tmp/history"
+			}()
+			saveHistory(Options{}, "hello")
+		})
+	}
+}
 
 func TestRun(t *testing.T) {
 	testCases := []struct {
