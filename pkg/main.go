@@ -4,5 +4,6 @@ import "github.com/zetaoss/runbox/pkg/handler"
 
 func main() {
 	r := handler.NewRouter()
-	r.Run(":8080")
+	err := r.Run(":8080")
+	panic(err)
 }

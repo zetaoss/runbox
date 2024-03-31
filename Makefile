@@ -17,4 +17,5 @@ cover:
 	go test ./... --failfast -coverprofile /tmp/coverage.out
 	go tool cover -func /tmp/coverage.out | tail -1
 
-checks: go-licenses gocyclo misspell test
+checks:
+	bash hack/checks.sh

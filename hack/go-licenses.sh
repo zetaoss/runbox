@@ -1,8 +1,7 @@
 #!/bin/bash
-cd $(dirname $0)/..
+cd $(dirname $0)/../
 
 which go-licenses || go install github.com/google/go-licenses@v1.6.0
-
 go-licenses check ./...
 if [[ $? != 0 ]]; then
     echo "❌ FAIL"
