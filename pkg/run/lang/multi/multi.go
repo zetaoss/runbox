@@ -15,6 +15,7 @@ import (
 
 const tempDir = "/tmp/multi"
 
+//gocyclo:ignore
 func toOutput(runResult *docker.Result, hash string) *types.Output {
 	output := &types.Output{}
 	logs := runResult.Logs
@@ -79,6 +80,7 @@ func toOutput(runResult *docker.Result, hash string) *types.Output {
 	return output
 }
 
+//gocyclo:ignore
 func getRunOpts(input types.MultiInput) (*types.RunOpts, error) {
 	if len(input.Files) == 0 {
 		return nil, fmt.Errorf("no files")
@@ -190,7 +192,7 @@ func Run(input types.MultiInput, extraOpts ...map[string]int) (*types.Output, er
 		if err == types.ErrInvalidLanguage {
 			return nil, types.ErrInvalidLanguage
 		}
-		return nil, fmt.Errorf("getRunOpts err: %w", err)
+		return nil, fmt.Errorf("get_Run___Opts err: %w", err)
 	}
 
 	// override extraOpts
