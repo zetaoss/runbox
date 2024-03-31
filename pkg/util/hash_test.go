@@ -33,9 +33,7 @@ func TestHash(t *testing.T) {
 
 func TestNewHash(t *testing.T) {
 	for i := 0; i < 100; i++ {
-		t.Run("", func(t *testing.T) {
-			h := NewHash(i)
-			require.Equal(t, i, len(h))
-		})
+		h := NewHash(i)
+		require.Equal(t, i, len(h))
 	}
 }
