@@ -1,6 +1,6 @@
 package main
 
-import "github.com/zetaoss/zetarun/pkg/handler"
+import "github.com/zetaoss/runbox/pkg/handler"
 
 func main() {
 	r := handler.NewRouter()

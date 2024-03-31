@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/zetaoss/zetarun/pkg/run/lang/single"
-	"github.com/zetaoss/zetarun/pkg/run/lang/types"
+	"github.com/zetaoss/runbox/pkg/run/lang/single"
+	"github.com/zetaoss/runbox/pkg/run/lang/types"
 )
 
 type ResponseObj struct {
