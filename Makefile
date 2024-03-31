@@ -19,3 +19,9 @@ cover:
 
 checks:
 	bash hack/checks.sh
+
+build:
+	CGO_ENABLED=0 GOOS=linux go build -C pkg -o /tmp/runbox
+
+docker:
+	docker build -t runbox .
