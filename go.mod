@@ -1,6 +1,6 @@
-module github.com/zetaoss/zetarun
+module github.com/zetaoss/runbox
 
-go 1.22.0
+go 1.21.8
 
 require (
 	github.com/gin-gonic/gin v1.9.1

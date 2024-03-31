@@ -2,7 +2,7 @@ package handler
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/zetaoss/zetarun/pkg/handler/run"
+	"github.com/zetaoss/runbox/pkg/handler/run"
 )
 
 func NewRouter() *gin.Engine {

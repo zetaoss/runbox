@@ -1,8 +1,8 @@
 package single
 
 import (
-	"github.com/zetaoss/zetarun/pkg/run/lang/multi"
-	"github.com/zetaoss/zetarun/pkg/run/lang/types"
+	"github.com/zetaoss/runbox/pkg/run/lang/multi"
+	"github.com/zetaoss/runbox/pkg/run/lang/types"
 )
 
 func Run(input types.SingleInput, extraOpts ...map[string]int) (*types.Output, error) {

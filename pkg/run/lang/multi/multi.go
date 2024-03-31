@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/zetaoss/zetarun/pkg/docker"
-	"github.com/zetaoss/zetarun/pkg/run/lang/types"
-	"github.com/zetaoss/zetarun/pkg/util"
+	"github.com/zetaoss/runbox/pkg/docker"
+	"github.com/zetaoss/runbox/pkg/run/lang/types"
+	"github.com/zetaoss/runbox/pkg/util"
 	"k8s.io/klog/v2"
 )
 
