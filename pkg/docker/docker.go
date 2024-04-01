@@ -9,36 +9,62 @@ import (
 	"strings"
 
 	"github.com/zetaoss/runbox/pkg/util"
+	"github.com/zetaoss/runbox/pkg/util/runid"
 	"k8s.io/klog/v2"
 )
 
 var (
-	fakeErr    = NoError
-	historyDir = "/tmp/history"
+	fakeErr = NoError
 )
 
+type Config struct {
+	DataDir string
+}
+
 type Docker struct {
+	DataDir     string
+	HistoryFile string
 }
 
 func New() (*Docker, error) {
-	if err := os.MkdirAll(historyDir, 0644); err != nil {
-		return nil, fmt.Errorf("MkdirAll err: %w", err)
-	}
-	return &Docker{}, nil
+	return NewWithConfig(Config{})
 }
 
-func saveHistory(opts Options, command string) {
-	file := historyDir + opts.Name
-	err := os.WriteFile(file, []byte(command), 0644)
-	if err != nil {
-		klog.Warningf("cannot WriteFile file=%s err=%s", file, err.Error())
+func NewWithConfig(cfg Config) (*Docker, error) {
+	dataDir := cfg.DataDir
+	if dataDir == "" {
+		dataDir = "/data"
 	}
+	if err := os.MkdirAll(dataDir, 0644); err != nil {
+		return nil, fmt.Errorf("MkdirAll err: %w", err)
+	}
+	historyFile := dataDir + "/history.txt"
+	return &Docker{
+		DataDir:     dataDir,
+		HistoryFile: historyFile,
+	}, nil
+}
+
+func (d *Docker) saveHistory(runOpts Options, command string) error {
+	line := fmt.Sprintf("%16s | %s\n", runOpts.RunID, command)
+	f, err := os.OpenFile(d.HistoryFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil || fakeErr == ErrOpenFile {
+		return fmt.Errorf("OpenFile err: %w", err)
+	}
+	defer f.Close()
+	if _, err = f.WriteString(line); err != nil || fakeErr == ErrWriteString {
+		return fmt.Errorf("WriteString err: %w", err)
+	}
+	if err := f.Close(); err != nil || fakeErr == ErrClose {
+		return fmt.Errorf("close err: %w", err)
+	}
+	return nil
 }
 
 func (d *Docker) Run(opts Options) (*Result, error) {
 	// default
-	if opts.Name == "" {
-		opts.Name = util.NewHash(10)
+	if opts.RunID == "" {
+		opts.RunID = runid.New("docker")
 	}
 	if opts.Shell == "" {
 		opts.Shell = "sh"
@@ -51,7 +77,7 @@ func (d *Docker) Run(opts Options) (*Result, error) {
 	}
 
 	command := "docker run"
-	command += " --name=" + opts.Name
+	command += " --name=" + opts.RunID
 	command += " --pids-limit=" + fmt.Sprintf("%d", opts.PidsLimit)
 	for _, bind := range opts.Binds {
 		command += " -v " + bind
@@ -60,9 +86,11 @@ func (d *Docker) Run(opts Options) (*Result, error) {
 	command += " " + opts.Command
 
 	// save history
-	saveHistory(opts, command)
+	if err := d.saveHistory(opts, command); err != nil {
+		klog.Warningf("saveHistory err: %s", err.Error())
+	}
 	_, _, exitCode := util.Run(command)
-	stdout, _, _ := util.Run("docker inspect  --format={{.Id}} " + opts.Name)
+	stdout, _, _ := util.Run("docker inspect --format={{.Id}} " + opts.RunID)
 	containerID := strings.TrimRight(stdout, "\n")
 	defer func() {
 		util.Run("docker rm -f " + containerID)

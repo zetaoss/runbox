@@ -1,22 +1,11 @@
 package multi
 
 import (
-	"os/exec"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/zetaoss/runbox/pkg/run/lang/types"
-	"k8s.io/klog/v2"
 )
-
-func init() {
-	klog.Info("tempDir=", tempDir)
-	cmd := exec.Command("mkdir", "-p", tempDir)
-	err := cmd.Run()
-	if err != nil {
-		panic(err)
-	}
-}
 
 func TestRun_Simple(t *testing.T) {
 	testcases := []struct {

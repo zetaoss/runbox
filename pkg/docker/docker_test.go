@@ -18,22 +18,31 @@ func init() {
 	}
 }
 
-func TestNew(t *testing.T) {
+func TestNewWithConfig(t *testing.T) {
 	testCases := []struct {
-		historyDir string
+		config     Config
 		wantDocker *Docker
 		wantError  string
 	}{
-		{"", nil, "no such file or directory"},
-		{"/tmp/history", &Docker{}, ""},
+		{
+			Config{},
+			&Docker{DataDir: "/data", HistoryFile: "/data/history.txt"},
+			"",
+		},
+		{
+			Config{DataDir: "/tmp/data"},
+			&Docker{DataDir: "/tmp/data", HistoryFile: "/tmp/data/history.txt"},
+			"",
+		},
+		{
+			Config{DataDir: "/etc/os-release"},
+			nil,
+			"MkdirAll err",
+		},
 	}
 	for _, tc := range testCases {
 		t.Run("", func(t *testing.T) {
-			historyDir = tc.historyDir
-			defer func() {
-				historyDir = "/tmp/history"
-			}()
-			d, err := New()
+			d, err := NewWithConfig(tc.config)
 			if tc.wantError == "" {
 				require.NoError(t, err)
 			} else {
@@ -46,18 +55,26 @@ func TestNew(t *testing.T) {
 
 func TestSaveHistory(t *testing.T) {
 	testCases := []struct {
-		historyDir string
+		fakeErr   Error
+		wantError string
 	}{
-		{""},
-		{"/tmp/history"},
+		{NoError, ""},
+		{ErrOpenFile, "OpenFile err: %!w(<nil>)"},
+		{ErrWriteString, "WriteString err: %!w(<nil>)"},
+		{ErrClose, "close err: %!w(<nil>)"},
 	}
 	for _, tc := range testCases {
 		t.Run("", func(t *testing.T) {
-			historyDir = tc.historyDir
+			fakeErr = tc.fakeErr
 			defer func() {
-				historyDir = "/tmp/history"
+				fakeErr = NoError
 			}()
-			saveHistory(Options{}, "hello")
+			err := docker.saveHistory(Options{}, "hello")
+			if tc.wantError == "" {
+				require.NoError(t, err)
+			} else {
+				require.EqualError(t, err, tc.wantError)
+			}
 		})
 	}
 }
@@ -133,13 +150,30 @@ func TestRun(t *testing.T) {
 }
 
 func TestRun_fakeErr(t *testing.T) {
-	fakeErr = ErrCollectLogs
-	defer func() {
-		fakeErr = NoError
-	}()
-	result, err := docker.Run(Options{})
-	require.EqualError(t, err, "collectLogs err: %!w(<nil>)")
-	require.Nil(t, result)
+	testCases := []struct {
+		fakeErr    Error
+		wantResult *Result
+		wantError  string
+	}{
+		{NoError, &Result{Logs: []Log{}, ExitCode: 1}, ""},
+		{ErrOpenFile, &Result{Logs: []Log{}, ExitCode: 1}, ""},
+		{ErrCollectLogs, nil, "collectLogs err: %!w(<nil>)"},
+	}
+	for _, tc := range testCases {
+		t.Run("", func(t *testing.T) {
+			fakeErr = tc.fakeErr
+			defer func() {
+				fakeErr = NoError
+			}()
+			result, err := docker.Run(Options{})
+			if tc.wantError == "" {
+				require.NoError(t, err)
+			} else {
+				require.EqualError(t, err, tc.wantError)
+			}
+			require.Equal(t, tc.wantResult, result)
+		})
+	}
 }
 
 func TestCollectLogs(t *testing.T) {

@@ -1,27 +1,7 @@
 package docker
 
-type Kind int
-
-const (
-	KindDocker Kind = iota
-	KindSingle
-	KindMulti
-)
-
-func (k Kind) String() string {
-	switch k {
-	case KindSingle:
-		return "single"
-	case KindMulti:
-		return "multi"
-	default:
-		return "docker"
-	}
-}
-
 type Options struct {
-	Kind           Kind
-	Name           string
+	RunID          string
 	Image          string
 	Shell          string
 	Command        string

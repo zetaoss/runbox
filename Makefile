@@ -10,6 +10,9 @@ gocyclo:
 misspell:
 	bash hack/misspell.sh
 
+staticcheck:
+	bash hack/staticcheck.sh
+
 test:
 	go test ./... --failfast -v
 
