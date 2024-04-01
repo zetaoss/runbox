@@ -5,44 +5,65 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/zetaoss/runbox/pkg/util"
+	"github.com/zetaoss/runbox/pkg/util/runid"
+	"k8s.io/klog/v2"
 )
 
-type Log struct {
-	Log    string
-	Stream string
+var (
+	fakeErr = NoError
+)
+
+type Config struct {
+	DataDir string
 }
 
 type Docker struct {
+	DataDir     string
+	HistoryFile string
 }
 
-type Options struct {
-	Name           string
-	Image          string
-	Shell          string
-	Command        string
-	Env            []string
-	PidsLimit      int
-	TimeoutSeconds int
-	Binds          []string
-	WorkingDir     string
+func New() (*Docker, error) {
+	return NewWithConfig(Config{})
 }
 
-type Result struct {
-	Logs     []Log
-	ExitCode int
+func NewWithConfig(cfg Config) (*Docker, error) {
+	dataDir := cfg.DataDir
+	if dataDir == "" {
+		dataDir = "/data"
+	}
+	if err := os.MkdirAll(dataDir, 0644); err != nil {
+		return nil, fmt.Errorf("MkdirAll err: %w", err)
+	}
+	historyFile := dataDir + "/history.txt"
+	return &Docker{
+		DataDir:     dataDir,
+		HistoryFile: historyFile,
+	}, nil
 }
 
-func New() *Docker {
-	return &Docker{}
+func (d *Docker) saveHistory(command string) error {
+	f, err := os.OpenFile(d.HistoryFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil || fakeErr == ErrOpenFile {
+		return fmt.Errorf("OpenFile err: %w", err)
+	}
+	defer f.Close()
+	if _, err = f.WriteString(command + "\n"); err != nil || fakeErr == ErrWriteString {
+		return fmt.Errorf("WriteString err: %w", err)
+	}
+	if err := f.Close(); err != nil || fakeErr == ErrClose {
+		return fmt.Errorf("close err: %w", err)
+	}
+	return nil
 }
 
 func (d *Docker) Run(opts Options) (*Result, error) {
 	// default
-	if opts.Name == "" {
-		opts.Name = util.NewHash(10)
+	if opts.RunID == "" {
+		opts.RunID = runid.New("docker")
 	}
 	if opts.Shell == "" {
 		opts.Shell = "sh"
@@ -55,21 +76,26 @@ func (d *Docker) Run(opts Options) (*Result, error) {
 	}
 
 	command := "docker run"
-	command += " --name=" + opts.Name
+	command += " --name=" + opts.RunID
 	command += " --pids-limit=" + fmt.Sprintf("%d", opts.PidsLimit)
 	for _, bind := range opts.Binds {
 		command += " -v " + bind
 	}
 	command += " " + opts.Image
 	command += " " + opts.Command
+
+	// save history
+	if err := d.saveHistory(command); err != nil {
+		klog.Warningf("saveHistory err: %s", err.Error())
+	}
 	_, _, exitCode := util.Run(command)
-	stdout, _, _ := util.Run("docker inspect  --format={{.Id}} " + opts.Name)
+	stdout, _, _ := util.Run("docker inspect --format={{.Id}} " + opts.RunID)
 	containerID := strings.TrimRight(stdout, "\n")
 	defer func() {
 		util.Run("docker rm -f " + containerID)
 	}()
 	logs, err := d.collectLogs(containerID)
-	if err != nil {
+	if err != nil || fakeErr == ErrCollectLogs {
 		return nil, fmt.Errorf("collectLogs err: %w", err)
 	}
 	return &Result{Logs: logs, ExitCode: exitCode}, nil
@@ -78,7 +104,6 @@ func (d *Docker) Run(opts Options) (*Result, error) {
 func (d *Docker) collectLogs(containerID string) ([]Log, error) {
 	logFilePath := fmt.Sprintf("/var/lib/docker/containers/%s/%s-json.log", containerID, containerID)
 	command := "cat " + logFilePath
-	// fmt.Println("command", command)
 	stdout, _, _ := util.Run(command)
 	var logs = []Log{}
 	scanner := bufio.NewScanner(strings.NewReader(stdout))
@@ -90,7 +115,7 @@ func (d *Docker) collectLogs(containerID string) ([]Log, error) {
 		}
 		logs = append(logs, logLine)
 	}
-	if err := scanner.Err(); err != nil {
+	if err := scanner.Err(); err != nil || fakeErr == ErrScanner {
 		log.Printf("warn: scanner: %s", err)
 	}
 	return logs, nil

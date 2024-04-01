@@ -1,22 +1,11 @@
 package multi
 
 import (
-	"os/exec"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/zetaoss/runbox/pkg/run/lang/types"
-	"k8s.io/klog/v2"
 )
-
-func init() {
-	klog.Info("tempDir=", tempDir)
-	cmd := exec.Command("mkdir", "-p", tempDir)
-	err := cmd.Run()
-	if err != nil {
-		panic(err)
-	}
-}
 
 func TestRun_Simple(t *testing.T) {
 	testcases := []struct {
@@ -25,6 +14,12 @@ func TestRun_Simple(t *testing.T) {
 		wantOutput *types.Output
 		wantError  string
 	}{
+		{
+			"bash",
+			[]types.File{},
+			nil,
+			"getRunOpts err: no files",
+		},
 		{
 			"bash",
 			[]types.File{
@@ -41,11 +36,11 @@ func TestRun_Simple(t *testing.T) {
 			output, err := Run(input)
 			if tc.wantError == "" {
 				require.NoError(t, err)
+				// ignore fields
+				output.Time = ""
 			} else {
 				require.EqualError(t, err, tc.wantError)
 			}
-			// ignore fields
-			output.Time = ""
 			require.Equal(t, tc.wantOutput, output)
 		})
 	}
@@ -168,17 +163,17 @@ func main() {
 			"0+---------------+",
 		}}},
 		// Perl
-		{"perl", types.File{Name: "", Content: `
-use strict;
-use warnings;
-
-print "Hello, World!\n";
-`, IsMain: false}, &types.Output{Logs: []string{"0Hello, World!"}}},
+		{"perl", types.File{Name: "", Content: `` +
+			"\n" + `use strict;` +
+			"\n" + `use warnings;` +
+			"\n" + `print "Hello, World!\n";`},
+			&types.Output{Logs: []string{"0Hello, World!"}}},
 		// PHP
-		{"php", types.File{Name: "", Content: `
-<?php
-echo "Hello, World!";
-`, IsMain: false}, &types.Output{Logs: []string{"0Hello, World!"}}},
+		{"php", types.File{Name: "", IsMain: false, Content: `echo "Hello, World!";`}, &types.Output{Logs: []string{"0Hello, World!"}}},
+		{"php", types.File{Name: "", IsMain: false, Content: `` +
+			"\n" + `<?php` +
+			"\n" + `echo "Hello, World!";`},
+			&types.Output{Logs: []string{"0Hello, World!"}}},
 		// PowerShell
 		{"powershell", types.File{Name: "", Content: `Write-Host "Hello, World!"`, IsMain: false}, &types.Output{Logs: []string{"0Hello, World!"}}},
 		// Python
@@ -194,6 +189,13 @@ echo "Hello, World!";
 			"0+-----------------+",
 			"0| Hello, World!   |",
 			"0+-----------------+",
+		}}},
+		{"sqlite3", types.File{Name: "", Content: `.tables`, IsMain: false}, &types.Output{Logs: []string{
+			"0Category              EmployeeTerritory     Region              ",
+			"0Customer              Order                 Shipper             ",
+			"0CustomerCustomerDemo  OrderDetail           Supplier            ",
+			"0CustomerDemographic   Product               Territory           ",
+			"0Employee              ProductDetails_V    ",
 		}}},
 	}
 	for _, tc := range testcases {

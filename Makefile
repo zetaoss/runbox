@@ -3,12 +3,14 @@ run:
 
 go-licenses:
 	bash hack/go-licenses.sh
-
 gocyclo:
 	bash hack/gocyclo.sh
-
+golangci-lint:
+	bash hack/golangci-lint.sh
 misspell:
 	bash hack/misspell.sh
+staticcheck:
+	bash hack/staticcheck.sh
 
 test:
 	go test ./... --failfast -v

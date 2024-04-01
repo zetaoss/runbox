@@ -7,12 +7,14 @@ type File struct {
 }
 
 type SingleInput struct {
+	RunID  string `json:"-"`
 	Lang   string `json:"lang"`
 	Source string `json:"source"`
 	Hash   string `json:"hash"`
 }
 
 type MultiInput struct {
+	RunID string `json:"-"`
 	Lang  string `json:"lang"`
 	Files []File `json:"files"`
 	Hash  string `json:"hash"`
