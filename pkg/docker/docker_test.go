@@ -193,7 +193,7 @@ func TestCollectLogs(t *testing.T) {
 			if tc.containerID != "" {
 				logFileDir := fmt.Sprintf("/var/lib/docker/containers/%s", tc.containerID)
 				logFilePath := fmt.Sprintf("/var/lib/docker/containers/%s/%s-json.log", tc.containerID, tc.containerID)
-				os.MkdirAll(logFileDir, 0644)
+				_ = os.MkdirAll(logFileDir, 0644)
 				defer func() {
 					_ = os.RemoveAll(logFileDir)
 				}()
@@ -219,7 +219,7 @@ func TestCollectLogs_fakeErr(t *testing.T) {
 	containerID := "foo"
 	logFileDir := fmt.Sprintf("/var/lib/docker/containers/%s", containerID)
 	logFilePath := fmt.Sprintf("/var/lib/docker/containers/%s/%s-json.log", containerID, containerID)
-	os.MkdirAll(logFileDir, 0644)
+	_ = os.MkdirAll(logFileDir, 0644)
 	defer func() {
 		_ = os.RemoveAll(logFileDir)
 	}()
