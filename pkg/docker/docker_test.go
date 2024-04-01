@@ -69,7 +69,7 @@ func TestSaveHistory(t *testing.T) {
 			defer func() {
 				fakeErr = NoError
 			}()
-			err := docker.saveHistory(Options{}, "hello")
+			err := docker.saveHistory("hello")
 			if tc.wantError == "" {
 				require.NoError(t, err)
 			} else {

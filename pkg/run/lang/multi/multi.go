@@ -10,7 +10,6 @@ import (
 	"github.com/zetaoss/runbox/pkg/docker"
 	"github.com/zetaoss/runbox/pkg/run/lang/types"
 	"github.com/zetaoss/runbox/pkg/util/runid"
-	"k8s.io/klog/v2"
 )
 
 func getOutputAndLogs(runResult *docker.Result, runID string) (*types.Output, []docker.Log) {
@@ -231,6 +230,7 @@ func Run(input types.MultiInput, extraOpts ...map[string]int) (*types.Output, er
 	}
 	command := fmt.Sprintf("%s %d %s -c '/usr/bin/time -f @@%s@@%%E,%%U,%%S,%%M@@ %s'", opts.TimeoutCommand, opts.TimeoutSeconds, opts.Shell, input.RunID, opts.Command)
 	dockerOptions := docker.Options{
+		RunID:          input.RunID,
 		PidsLimit:      opts.PidsLimit,
 		TimeoutSeconds: 60,
 		Image:          fmt.Sprintf("jmnote/runbox:%s", input.Lang),
@@ -257,12 +257,6 @@ func writeFiles(input types.MultiInput, opts *types.RunOpts) ([]string, error) {
 	if err := os.MkdirAll(bindSrcDir, 0777); err != nil {
 		return nil, fmt.Errorf("MkdirAll err: %w, name: %s", err, bindSrcDir)
 	}
-	defer func() {
-		err := os.RemoveAll(bindSrcRoot)
-		if err != nil {
-			klog.Warningf("removeAll err=%s dir=%s\n", err, bindSrcRoot)
-		}
-	}()
 	var binds []string
 	for _, f := range input.Files {
 		fileName := f.Name
@@ -279,9 +273,6 @@ func writeFiles(input types.MultiInput, opts *types.RunOpts) ([]string, error) {
 		if err := os.WriteFile(src, []byte(content), 0644); err != nil {
 			return nil, fmt.Errorf("WriteFile err: %w, src: %s", err, src)
 		}
-		defer func() {
-			os.Remove(src)
-		}()
 	}
 	return binds, nil
 }

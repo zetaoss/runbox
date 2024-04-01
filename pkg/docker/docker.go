@@ -45,14 +45,13 @@ func NewWithConfig(cfg Config) (*Docker, error) {
 	}, nil
 }
 
-func (d *Docker) saveHistory(runOpts Options, command string) error {
-	line := fmt.Sprintf("%16s | %s\n", runOpts.RunID, command)
+func (d *Docker) saveHistory(command string) error {
 	f, err := os.OpenFile(d.HistoryFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil || fakeErr == ErrOpenFile {
 		return fmt.Errorf("OpenFile err: %w", err)
 	}
 	defer f.Close()
-	if _, err = f.WriteString(line); err != nil || fakeErr == ErrWriteString {
+	if _, err = f.WriteString(command + "\n"); err != nil || fakeErr == ErrWriteString {
 		return fmt.Errorf("WriteString err: %w", err)
 	}
 	if err := f.Close(); err != nil || fakeErr == ErrClose {
@@ -86,7 +85,7 @@ func (d *Docker) Run(opts Options) (*Result, error) {
 	command += " " + opts.Command
 
 	// save history
-	if err := d.saveHistory(opts, command); err != nil {
+	if err := d.saveHistory(command); err != nil {
 		klog.Warningf("saveHistory err: %s", err.Error())
 	}
 	_, _, exitCode := util.Run(command)
