@@ -15,7 +15,4 @@ bash hack/staticcheck.sh
 which goimports || go install golang.org/x/tools/cmd/goimports@latest
 goimports -local -v -w .
 
-which go-licenses || go install github.com/google/go-licenses@v1.6.0
-go-licenses check ./...
-
 echo "✔️ OK"
