@@ -16,17 +16,17 @@ func Hash(s string, n int) string {
 	_, _ = hasher.Write([]byte(s))
 	hashBytes := hasher.Sum(nil)
 
-	base36Chars := "0123456789abcdefghijklmnopqrstuvwxyz"
-	var base36Hash bytes.Buffer
+	baseChars := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	var baseHash bytes.Buffer
 	for _, b := range hashBytes {
-		base36Hash.WriteByte(base36Chars[b%36])
+		baseHash.WriteByte(baseChars[b%36])
 	}
 	var result bytes.Buffer
-	cnt := n / base36Hash.Len()
-	remainder := n % base36Hash.Len()
+	cnt := n / baseHash.Len()
+	remainder := n % baseHash.Len()
 	for i := 0; i < cnt; i++ {
-		result.Write(base36Hash.Bytes())
+		result.Write(baseHash.Bytes())
 	}
-	result.WriteString(base36Hash.String()[:remainder])
+	result.WriteString(baseHash.String()[:remainder])
 	return result.String()
 }

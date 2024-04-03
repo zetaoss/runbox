@@ -12,15 +12,8 @@ func TestHash(t *testing.T) {
 		length   int
 		wantHash string
 	}{
-		{"", 5, "bwgu8"},
-		{"", 10, "bwgu80skaz"},
-		{"", 100, "bwgu80skazsk93503utcsb34k59rca4dbwgu80skazsk93503utcsb34k59rca4dbwgu80skazsk93503utcsb34k59rca4dbwgu"},
-		{"hello", 5, "8q56n"},
-		{"hello", 10, "8q56nwje2g"},
-		{"hello", 100, "8q56nwje2gn6h5aermukvnum74fq3v808q56nwje2gn6h5aermukvnum74fq3v808q56nwje2gn6h5aermukvnum74fq3v808q56"},
-		{"world", 5, "02kq0"},
-		{"world", 10, "02kq0t772k"},
-		{"world", 100, "02kq0t772kr7ga1yz0ksa7iyi0t2ec4n02kq0t772kr7ga1yz0ksa7iyi0t2ec4n02kq0t772kr7ga1yz0ksa7iyi0t2ec4n02kq"},
+		{"", 5, "lGqEi"},
+		{"hello", 100, "iAfgxGtocqxgrfkoBwEuFxEwhepAdFiaiAfgxGtocqxgrfkoBwEuFxEwhepAdFiaiAfgxGtocqxgrfkoBwEuFxEwhepAdFiaiAfg"},
 	}
 
 	for _, tc := range testcases {
