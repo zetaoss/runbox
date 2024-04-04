@@ -213,43 +213,77 @@ func main() {
 	}
 }
 
-func TestRunWithTimeout(t *testing.T) {
-	testCases := []struct {
+func TestRun_OutputLimitReached(t *testing.T) {
+	testcases := []struct {
 		lang        string
 		file        types.File
-		wantLogs    []string
-		wantImages  []string
-		wantTimeout bool
-		wantError   string
+		wantOutput  *types.Output
+		wantLengths []int
+	}{
+		{"python", types.File{Name: "", Content: `print(100*"X")`, IsMain: false}, &types.Output{}, []int{101}},
+		{"python", types.File{Name: "", Content: `print(1000*"X")`, IsMain: false}, &types.Output{}, []int{1001}},
+		{"python", types.File{Name: "", Content: `print(10000*"X")`, IsMain: false}, &types.Output{Warning: types.WarnOutputLimitReached}, []int{8001}},
+		{"python", types.File{Name: "", Content: `[print(1000*"X") for _ in range(1)]`, IsMain: false}, &types.Output{}, []int{1001}},
+		{"python", types.File{Name: "", Content: `[print(1000*"X") for _ in range(10)]`, IsMain: false}, &types.Output{Warning: types.WarnOutputLimitReached}, []int{1001, 1001, 1001, 1001, 1001, 1001, 1001, 994}},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.lang+"__", func(t *testing.T) {
+			input := types.MultiInput{Lang: tc.lang, Files: []types.File{tc.file}}
+			output, err := Run(input)
+			require.NoError(t, err)
+
+			lengths := []int{}
+			for _, l := range output.Logs {
+				lengths = append(lengths, len(l))
+			}
+
+			// ignore fields
+			output.Logs = nil
+			output.Time = ""
+			output.CPU = 0
+			output.MEM = 0
+
+			require.Equal(t, tc.wantOutput, output)
+			require.Equal(t, tc.wantLengths, lengths)
+		})
+	}
+}
+
+func TestRunWithTimeout(t *testing.T) {
+	testCases := []struct {
+		lang       string
+		file       types.File
+		wantOutput *types.Output
+		wantError  string
 	}{
 		// Bash
 		{
 			"bash", types.File{Name: "", Content: `echo hello`, IsMain: false},
-			[]string{"0hello"}, nil, false, "",
+			&types.Output{Logs: []string{"0hello"}}, "",
 		},
 		{
 			"bash", types.File{Name: "", Content: `echo hello; sleep 3`, IsMain: false},
-			[]string{"0hello"}, nil, true, "",
+			&types.Output{Logs: []string{"0hello"}, Warning: types.WarnTimeout}, "",
 		},
 		{
 			"bash", types.File{Name: "", Content: `sleep 3; echo hello`, IsMain: false},
-			[]string{}, nil, true, "",
+			&types.Output{Logs: []string{}, Warning: types.WarnTimeout}, "",
 		},
 		{
 			"bash", types.File{Name: "", Content: `echo hello; echo world`, IsMain: false},
-			[]string{"0hello", "0world"}, nil, false, "",
+			&types.Output{Logs: []string{"0hello", "0world"}}, "",
 		},
 		{
 			"bash", types.File{Name: "", Content: `echo hello; echo world; sleep 3`, IsMain: false},
-			[]string{"0hello", "0world"}, nil, true, "",
+			&types.Output{Logs: []string{"0hello", "0world"}, Warning: types.WarnTimeout}, "",
 		},
 		{
 			"bash", types.File{Name: "", Content: `echo hello; sleep 3; echo world`, IsMain: false},
-			[]string{"0hello"}, nil, true, "",
+			&types.Output{Logs: []string{"0hello"}, Warning: types.WarnTimeout}, "",
 		},
 		{
 			"bash", types.File{Name: "", Content: `sleep 3; echo hello; echo world`, IsMain: false},
-			[]string{}, nil, true, "",
+			&types.Output{Logs: []string{}, Warning: types.WarnTimeout}, "",
 		},
 	}
 	for _, tc := range testCases {
@@ -261,9 +295,11 @@ func TestRunWithTimeout(t *testing.T) {
 			} else {
 				require.EqualError(t, err, tc.wantError)
 			}
-			require.Equal(t, tc.wantLogs, output.Logs)
-			require.Equal(t, tc.wantImages, output.Images)
-			require.Equal(t, tc.wantTimeout, output.Timeout)
+			// ignore fields
+			output.Time = ""
+			output.CPU = 0
+			output.MEM = 0
+			require.Equal(t, tc.wantOutput, output)
 		})
 	}
 }

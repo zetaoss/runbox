@@ -61,6 +61,12 @@ func (d *Docker) saveHistory(command string) error {
 }
 
 func (d *Docker) Run(opts Options) (*Result, error) {
+	if opts.Image == "" {
+		return nil, fmt.Errorf("no image")
+	}
+	if opts.Command == "" {
+		return nil, fmt.Errorf("no command")
+	}
 	// default
 	if opts.RunID == "" {
 		opts.RunID = runid.New("docker")
@@ -74,7 +80,6 @@ func (d *Docker) Run(opts Options) (*Result, error) {
 	if opts.PidsLimit == 0 {
 		opts.PidsLimit = 15
 	}
-
 	command := "docker run"
 	command += " --name=" + opts.RunID
 	command += " --pids-limit=" + fmt.Sprintf("%d", opts.PidsLimit)
@@ -94,29 +99,48 @@ func (d *Docker) Run(opts Options) (*Result, error) {
 	defer func() {
 		util.Run("docker rm -f " + containerID)
 	}()
-	logs, err := d.collectLogs(containerID)
+	logs, outputLimitReached, err := d.collectLogs(containerID, opts.OutputLimit)
 	if err != nil || fakeErr == ErrCollectLogs {
 		return nil, fmt.Errorf("collectLogs err: %w", err)
 	}
-	return &Result{Logs: logs, ExitCode: exitCode}, nil
+	return &Result{ExitCode: exitCode, Logs: logs, OutputLimitReached: outputLimitReached}, nil
 }
 
-func (d *Docker) collectLogs(containerID string) ([]Log, error) {
+func (d *Docker) collectLogs(containerID string, outputLimit int) ([]Log, bool, error) {
 	logFilePath := fmt.Sprintf("/var/lib/docker/containers/%s/%s-json.log", containerID, containerID)
-	command := "cat " + logFilePath
-	stdout, _, _ := util.Run(command)
-	var logs = []Log{}
-	scanner := bufio.NewScanner(strings.NewReader(stdout))
+
+	file, err := os.Open(logFilePath)
+	if err != nil {
+		return nil, false, err
+	}
+	defer file.Close()
+
+	var logs []Log = []Log{}
+	var totalLength int
+	var limitReached bool
+
+	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		var logLine Log
 		if err := json.Unmarshal(scanner.Bytes(), &logLine); err != nil {
 			log.Printf("warn: unmarshal: %s", err)
 			continue
 		}
+
+		lineLength := len([]rune(logLine.Log))
+		if outputLimit != 0 && totalLength+lineLength > outputLimit {
+			limitReached = true
+			logLine.Log = logLine.Log[:outputLimit-totalLength]
+			logs = append(logs, logLine)
+			break
+		}
+
+		totalLength += lineLength
 		logs = append(logs, logLine)
 	}
+
 	if err := scanner.Err(); err != nil || fakeErr == ErrScanner {
 		log.Printf("warn: scanner: %s", err)
 	}
-	return logs, nil
+	return logs, limitReached, nil
 }

@@ -20,13 +20,18 @@ type MultiInput struct {
 	Hash  string `json:"hash"`
 }
 
+const (
+	WarnTimeout = 1 << iota
+	WarnOutputLimitReached
+)
+
 type Output struct {
 	Logs    []string `json:"logs"`
 	Images  []string `json:"images,omitempty"`
-	Timeout bool     `json:"timeout,omitempty"`
 	Time    string   `json:"time"`
 	CPU     float32  `json:"cpu"`
 	MEM     float32  `json:"mem"`
+	Warning int      `json:"warning,omitempty"`
 }
 
 type RunOpts struct {
