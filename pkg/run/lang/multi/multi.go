@@ -14,10 +14,13 @@ import (
 
 func getOutputAndLogs(runResult *docker.Result, runID string) (*types.Output, []docker.Log) {
 	output := &types.Output{}
-	logs := runResult.Logs
 	if runResult.ExitCode == 124 {
-		output.Timeout = true
+		output.Warning |= types.WarnTimeout
 	}
+	if runResult.OutputLimitReached {
+		output.Warning |= types.WarnOutputLimitReached
+	}
+	logs := runResult.Logs
 	var timeIndex int = -1
 	for i, log := range logs {
 		if strings.HasPrefix(log.Log, "@@"+runID+"@@") {
@@ -233,6 +236,7 @@ func Run(input types.MultiInput, extraOpts ...map[string]int) (*types.Output, er
 		RunID:          input.RunID,
 		PidsLimit:      opts.PidsLimit,
 		TimeoutSeconds: 60,
+		OutputLimit:    8000,
 		Image:          fmt.Sprintf("jmnote/runbox:%s", input.Lang),
 		Command:        command,
 		Binds:          binds,

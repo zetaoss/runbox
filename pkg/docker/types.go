@@ -8,6 +8,7 @@ type Options struct {
 	Env            []string
 	PidsLimit      int
 	TimeoutSeconds int
+	OutputLimit    int
 	Binds          []string
 	WorkingDir     string
 }
@@ -18,6 +19,7 @@ type Log struct {
 }
 
 type Result struct {
-	Logs     []Log
-	ExitCode int
+	ExitCode           int
+	Logs               []Log
+	OutputLimitReached bool
 }

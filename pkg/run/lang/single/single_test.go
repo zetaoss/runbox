@@ -194,14 +194,14 @@ echo "Hello, World!";
 
 func TestRun_timeout(t *testing.T) {
 	testCases := []TestCaseOK{
-		{"bash", `echo hello`, &types.Output{Logs: []string{"0hello"}, Timeout: false}},
-		{"bash", `echo hello; echo world`, &types.Output{Logs: []string{"0hello", "0world"}, Timeout: false}},
+		{"bash", `echo hello`, &types.Output{Logs: []string{"0hello"}}},
+		{"bash", `echo hello; echo world`, &types.Output{Logs: []string{"0hello", "0world"}}},
 
-		{"bash", `echo hello; sleep 3`, &types.Output{Logs: []string{"0hello"}, Timeout: true}},
-		{"bash", `sleep 3; echo hello`, &types.Output{Logs: []string{}, Timeout: true}},
-		{"bash", `echo hello; echo world; sleep 3`, &types.Output{Logs: []string{"0hello", "0world"}, Timeout: true}},
-		{"bash", `echo hello; sleep 3; echo world`, &types.Output{Logs: []string{"0hello"}, Timeout: true}},
-		{"bash", `sleep 3; echo hello; echo world`, &types.Output{Logs: []string{}, Timeout: true}},
+		{"bash", `echo hello; sleep 3`, &types.Output{Logs: []string{"0hello"}, Warning: types.WarnTimeout}},
+		{"bash", `sleep 3; echo hello`, &types.Output{Logs: []string{}, Warning: types.WarnTimeout}},
+		{"bash", `echo hello; echo world; sleep 3`, &types.Output{Logs: []string{"0hello", "0world"}, Warning: types.WarnTimeout}},
+		{"bash", `echo hello; sleep 3; echo world`, &types.Output{Logs: []string{"0hello"}, Warning: types.WarnTimeout}},
+		{"bash", `sleep 3; echo hello; echo world`, &types.Output{Logs: []string{}, Warning: types.WarnTimeout}},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.lang, func(t *testing.T) {

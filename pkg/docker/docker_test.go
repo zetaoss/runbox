@@ -64,7 +64,7 @@ func TestSaveHistory(t *testing.T) {
 		{ErrClose, "close err: %!w(<nil>)"},
 	}
 	for _, tc := range testCases {
-		t.Run("", func(t *testing.T) {
+		t.Run("_"+string(tc.fakeErr), func(t *testing.T) {
 			fakeErr = tc.fakeErr
 			defer func() {
 				fakeErr = NoError
@@ -88,9 +88,21 @@ func TestRun(t *testing.T) {
 	}{
 		{
 			"",
-			Options{Image: "alpine", Command: ""},
-			&Result{Logs: []Log{}, ExitCode: 0},
+			Options{},
+			nil,
+			"no image",
+		},
+		{
 			"",
+			Options{Command: "echo hello"},
+			nil,
+			"no image",
+		},
+		{
+			"",
+			Options{Image: "alpine", Command: ""},
+			nil,
+			"no command",
 		},
 		{
 			"etc",
@@ -137,7 +149,7 @@ func TestRun(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run("_"+tc.name, func(t *testing.T) {
 			result, err := docker.Run(tc.options)
 			if tc.wantError == "" {
 				require.NoError(t, err)
@@ -149,23 +161,80 @@ func TestRun(t *testing.T) {
 	}
 }
 
+func TestRun_OutputLimitReached(t *testing.T) {
+	testCases := []struct {
+		name           string
+		options        Options
+		wantResult     *Result
+		wantLogLengths []int
+		wantError      string
+	}{
+		{
+			"python",
+			Options{Image: "jmnote/runbox:python", Command: `python -c "print(10*'HelloWorld')"`, OutputLimit: 0},
+			&Result{ExitCode: 0},
+			[]int{101},
+			"",
+		},
+		{
+			"python",
+			Options{Image: "jmnote/runbox:python", Command: `python -c "print(100*'HelloWorld')"`, OutputLimit: 0},
+			&Result{ExitCode: 0},
+			[]int{1001},
+			"",
+		},
+		{
+			"python",
+			Options{Image: "jmnote/runbox:python", Command: `python -c "print(10*'HelloWorld')"`, OutputLimit: 500},
+			&Result{ExitCode: 0},
+			[]int{101},
+			"",
+		},
+		{
+			"python",
+			Options{Image: "jmnote/runbox:python", Command: `python -c "print(100*'HelloWorld')"`, OutputLimit: 500},
+			&Result{ExitCode: 0, OutputLimitReached: true},
+			[]int{500},
+			"",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run("_"+tc.name, func(t *testing.T) {
+			result, err := docker.Run(tc.options)
+			if tc.wantError == "" {
+				require.NoError(t, err)
+			} else {
+				require.EqualError(t, err, tc.wantError)
+			}
+			logLengths := []int{}
+			for _, l := range result.Logs {
+				logLengths = append(logLengths, len(l.Log))
+			}
+			// ignore fields
+			result.Logs = nil
+			require.Equal(t, tc.wantResult, result)
+			require.Equal(t, tc.wantLogLengths, logLengths)
+		})
+	}
+}
+
 func TestRun_fakeErr(t *testing.T) {
 	testCases := []struct {
 		fakeErr    Error
 		wantResult *Result
 		wantError  string
 	}{
-		{NoError, &Result{Logs: []Log{}, ExitCode: 1}, ""},
-		{ErrOpenFile, &Result{Logs: []Log{}, ExitCode: 1}, ""},
+		{NoError, &Result{Logs: []Log{{Log: "hello\n", Stream: "stdout"}}, ExitCode: 0}, ""},
+		{ErrOpenFile, &Result{Logs: []Log{{Log: "hello\n", Stream: "stdout"}}, ExitCode: 0}, ""},
 		{ErrCollectLogs, nil, "collectLogs err: %!w(<nil>)"},
 	}
 	for _, tc := range testCases {
-		t.Run("", func(t *testing.T) {
+		t.Run("_"+string(tc.fakeErr), func(t *testing.T) {
 			fakeErr = tc.fakeErr
 			defer func() {
 				fakeErr = NoError
 			}()
-			result, err := docker.Run(Options{})
+			result, err := docker.Run(Options{Image: "alpine", Command: "echo hello"})
 			if tc.wantError == "" {
 				require.NoError(t, err)
 			} else {
@@ -178,15 +247,17 @@ func TestRun_fakeErr(t *testing.T) {
 
 func TestCollectLogs(t *testing.T) {
 	testCases := []struct {
-		containerID string
-		content     string
-		wantLogs    []Log
-		wantError   string
+		containerID      string
+		content          string
+		outputLimit      int
+		wantLogs         []Log
+		wantLimitReached bool
+		wantError        string
 	}{
-		{"", "", []Log{}, ""},
-		{"hello", "", []Log{}, ""},
-		{"foo", "bar", []Log{}, ""},
-		{"foo", "{}", []Log{{Log: "", Stream: ""}}, ""},
+		{"", "", 0, nil, false, "open /var/lib/docker/containers//-json.log: no such file or directory"},
+		{"hello", "", 0, []Log{}, false, ""},
+		{"foo", "bar", 0, []Log{}, false, ""},
+		{"foo", "{}", 0, []Log{{Log: "", Stream: ""}}, false, ""},
 	}
 	for _, tc := range testCases {
 		t.Run("", func(t *testing.T) {
@@ -200,13 +271,14 @@ func TestCollectLogs(t *testing.T) {
 				err := os.WriteFile(logFilePath, []byte(tc.content), 0644)
 				require.NoError(t, err)
 			}
-			logs, err := docker.collectLogs(tc.containerID)
+			logs, limitReached, err := docker.collectLogs(tc.containerID, tc.outputLimit)
 			if tc.wantError == "" {
 				require.NoError(t, err)
 			} else {
 				require.EqualError(t, err, tc.wantError)
 			}
 			require.Equal(t, tc.wantLogs, logs)
+			require.Equal(t, tc.wantLimitReached, limitReached)
 		})
 	}
 }
@@ -225,7 +297,8 @@ func TestCollectLogs_fakeErr(t *testing.T) {
 	}()
 	err := os.WriteFile(logFilePath, []byte("{"), 0644)
 	require.NoError(t, err)
-	logs, err := docker.collectLogs("foo")
+	logs, limitReached, err := docker.collectLogs("foo", 0)
 	require.NoError(t, err)
+	require.False(t, limitReached)
 	require.Equal(t, []Log{}, logs)
 }
