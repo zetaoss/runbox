@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/zetaoss/runbox/pkg/docker"
-	"github.com/zetaoss/runbox/pkg/run/lang/types"
+	"github.com/zetaoss/runbox/pkg/runner/lang/types"
 	"github.com/zetaoss/runbox/pkg/util/runid"
 )
 
@@ -120,40 +120,40 @@ func getRunOpts(input types.MultiInput) (*types.RunOpts, error) {
 		},
 		"java": func(*types.RunOpts) {
 			opts.Command = `javac -d bin -cp "lib/*" src/*; java -cp "bin:lib/*" App && echo && echo ==` + input.RunID + `== && ls *.png 2>/dev/null | head -2 | xargs -i sh -c "echo; base64 -w0 {}"`
-			opts.WorkingDir = "/demo"
-			opts.VolSubPath = "/src"
 			opts.FileName = "App"
 			opts.PidsLimit = 30
+			opts.VolSubPath = "/src"
+			opts.WorkingDir = "/demo"
 		},
 		"kotlin": func(*types.RunOpts) {
 			opts.Command = "kotlinc runbox.kt -include-runtime -d runbox.jar && java -jar runbox.jar"
-			opts.TimeoutCommand = "timeout -s KILL"
 			opts.FileExt = "kt"
 			opts.PidsLimit = 50
+			opts.TimeoutCommand = "timeout -s KILL"
 			opts.TimeoutSeconds = 10
 		},
 		"go": func(*types.RunOpts) {
-			opts.PidsLimit = 40
-			opts.TimeoutSeconds = 30
+			opts.Command = "go mod tidy 2>/dev/null; go run runbox.go"
 			opts.Env = []string{"TINI_SUBREAPER=1"}
+			opts.PidsLimit = 60
+			opts.TimeoutSeconds = 30
 			opts.TimeoutCommand = "tini timeout"
-			// opts.Command = "go mod tidy 2>/dev/null; go run runbox.go"
-			opts.Command = "go run runbox.go"
 		},
 		"lua": func(*types.RunOpts) {
 			opts.Command = "lua runbox.lua"
 		},
 		"mysql": func(*types.RunOpts) {
+			opts.Command = "bash /tmp/entrypoint.sh"
+			opts.FileExt = "sql"
 			opts.PidsLimit = 300
 			opts.TimeoutSeconds = 30
-			opts.FileExt = "sql"
-			opts.Command = "bash /tmp/entrypoint.sh"
 		},
 		"perl": func(*types.RunOpts) {
-			opts.FileExt = "pl"
 			opts.Command = "perl runbox.pl"
+			opts.FileExt = "pl"
 		},
 		"php": func(*types.RunOpts) {
+			opts.Command = "php runbox.php"
 			opts.ModifySourceFunc = func(source string) string {
 				source = strings.TrimLeft(source, " \t\n")
 				if source[:5] != "<?php" {
@@ -161,7 +161,6 @@ func getRunOpts(input types.MultiInput) (*types.RunOpts, error) {
 				}
 				return source
 			}
-			opts.Command = "php runbox.php"
 		},
 		"powershell": func(*types.RunOpts) {
 			opts.Command = "pwsh runbox.ps"
@@ -173,28 +172,28 @@ func getRunOpts(input types.MultiInput) (*types.RunOpts, error) {
 			opts.FileExt = "py"
 		},
 		"r": func(*types.RunOpts) {
+			opts.Command = "Rscript runbox.r"
+			opts.PidsLimit = 20
 			opts.ModifySourceFunc = func(source string) string {
 				return "png(width=500,height=400);\n" + source + "\n" +
 					`cat('\n==` + input.RunID + `==\n'); options(echo=F); invisible(dev.off());` +
 					`system('find . -name "*.pdf" -exec mogrify -density 80 -format png {} \\;',ignore.stdout=T,ignore.stderr=F);` +
 					`system('ls Rplot00?.png 2>/dev/null | head -2 | xargs -i sh -c "echo; base64 -w0 {}"')`
 			}
-			opts.Command = "Rscript runbox.r"
-			opts.PidsLimit = 20
 		},
 		"ruby": func(*types.RunOpts) {
-			opts.FileExt = "rb"
 			opts.Command = "ruby runbox.rb"
+			opts.FileExt = "rb"
 		},
 		"sqlite3": func(*types.RunOpts) {
-			opts.FileExt = "sql"
 			source := input.Files[0].Content
+			input.Files[0].Content = source
 			if strings.HasPrefix(source, ".") {
 				opts.Command = "sqlite3 chinook.db " + source
 			} else {
 				opts.Command = "sqlite3 -header chinook.db < runbox.sql"
 			}
-			input.Files[0].Content = source
+			opts.FileExt = "sql"
 		},
 	}
 	f, ok := langFunc[input.Lang]

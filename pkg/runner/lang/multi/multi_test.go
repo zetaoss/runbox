@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/zetaoss/runbox/pkg/run/lang/types"
+	"github.com/zetaoss/runbox/pkg/runner/lang/types"
 )
 
 func TestRun_Simple(t *testing.T) {
@@ -149,9 +149,9 @@ fun main() {
 package main
 import "fmt"
 func main() {
-	fmt.Println("Hello, World!")
+	fmt.Println("Hello, 世界")
 }
-`, IsMain: false}, &types.Output{Logs: []string{"0Hello, World!"}}},
+`, IsMain: false}, &types.Output{Logs: []string{"0Hello, 世界"}}},
 		// Lua
 		{"lua", types.File{Name: "", Content: `print("Hello, World!")`, IsMain: false}, &types.Output{Logs: []string{"0Hello, World!"}}},
 		// MySQL

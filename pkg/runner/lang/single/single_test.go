@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/zetaoss/runbox/pkg/run/lang/types"
+	"github.com/zetaoss/runbox/pkg/runner/lang/types"
 )
 
 type TestCaseOK struct {

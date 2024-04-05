@@ -1,8 +1,8 @@
 package single
 
 import (
-	"github.com/zetaoss/runbox/pkg/run/lang/multi"
-	"github.com/zetaoss/runbox/pkg/run/lang/types"
+	"github.com/zetaoss/runbox/pkg/runner/lang/multi"
+	"github.com/zetaoss/runbox/pkg/runner/lang/types"
 	"github.com/zetaoss/runbox/pkg/util/runid"
 )
 
