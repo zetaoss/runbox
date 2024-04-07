@@ -1,4 +1,4 @@
-package run
+package multi
 
 type Error string
 

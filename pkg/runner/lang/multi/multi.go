@@ -8,17 +8,18 @@ import (
 	"strings"
 
 	"github.com/zetaoss/runbox/pkg/docker"
-	"github.com/zetaoss/runbox/pkg/run/lang/types"
+	"github.com/zetaoss/runbox/pkg/runner/lang/types"
 	"github.com/zetaoss/runbox/pkg/util/runid"
+	"k8s.io/klog/v2"
 )
 
 func getOutputAndLogs(runResult *docker.Result, runID string) (*types.Output, []docker.Log) {
 	output := &types.Output{}
 	if runResult.ExitCode == 124 {
-		output.Warning |= types.WarnTimeout
+		output.Warnings = append(output.Warnings, types.WarnTimeout)
 	}
 	if runResult.OutputLimitReached {
-		output.Warning |= types.WarnOutputLimitReached
+		output.Warnings = append(output.Warnings, types.WarnOutputLimitReached)
 	}
 	logs := runResult.Logs
 	var timeIndex int = -1
@@ -85,16 +86,12 @@ func toOutput(runResult *docker.Result, runID string) *types.Output {
 }
 
 //gocyclo:ignore
-func getRunOpts(input types.MultiInput) (*types.RunOpts, error) {
-	if len(input.Files) == 0 {
-		return nil, fmt.Errorf("no files")
-	}
+func getRunOpts(input Input) (*types.RunOpts, error) {
 	var opts = &types.RunOpts{
 		Command:          "",
 		Env:              []string{},
 		FileName:         "runbox",
 		FileExt:          input.Lang,
-		PidsLimit:        15,
 		ModifySourceFunc: nil,
 		Shell:            "sh",
 		TimeoutCommand:   "timeout --kill-after=1",
@@ -120,40 +117,38 @@ func getRunOpts(input types.MultiInput) (*types.RunOpts, error) {
 		},
 		"java": func(*types.RunOpts) {
 			opts.Command = `javac -d bin -cp "lib/*" src/*; java -cp "bin:lib/*" App && echo && echo ==` + input.RunID + `== && ls *.png 2>/dev/null | head -2 | xargs -i sh -c "echo; base64 -w0 {}"`
-			opts.WorkingDir = "/demo"
-			opts.VolSubPath = "/src"
 			opts.FileName = "App"
-			opts.PidsLimit = 30
+			opts.VolSubPath = "/src"
+			opts.WorkingDir = "/demo"
 		},
 		"kotlin": func(*types.RunOpts) {
-			opts.Command = "kotlinc runbox.kt -include-runtime -d runbox.jar && java -jar runbox.jar"
-			opts.TimeoutCommand = "timeout -s KILL"
+			// opts.Command = "kotlinc runbox.kt && TIME java RunboxKt" // 17.7s
+			// opts.Command = "kotlinc runbox.kt -include-runtime -d runbox.jar && TIME java -jar runbox.jar" // 17.4s
+			opts.Command = "kotlinc runbox.kt -d runbox.jar &&   TIME java -jar runbox.jar" // 13.6s 17.2s
 			opts.FileExt = "kt"
-			opts.PidsLimit = 50
-			opts.TimeoutSeconds = 10
+			opts.TimeoutCommand = "timeout -s KILL"
+			opts.TimeoutSeconds = 30
 		},
 		"go": func(*types.RunOpts) {
-			opts.PidsLimit = 40
-			opts.TimeoutSeconds = 30
+			opts.Command = "go mod tidy 2>/dev/null && TIME go run runbox.go"
 			opts.Env = []string{"TINI_SUBREAPER=1"}
 			opts.TimeoutCommand = "tini timeout"
-			// opts.Command = "go mod tidy 2>/dev/null; go run runbox.go"
-			opts.Command = "go run runbox.go"
+			opts.TimeoutSeconds = 30
 		},
 		"lua": func(*types.RunOpts) {
 			opts.Command = "lua runbox.lua"
 		},
 		"mysql": func(*types.RunOpts) {
-			opts.PidsLimit = 300
-			opts.TimeoutSeconds = 30
-			opts.FileExt = "sql"
 			opts.Command = "bash /tmp/entrypoint.sh"
+			opts.FileExt = "sql"
+			opts.TimeoutSeconds = 30
 		},
 		"perl": func(*types.RunOpts) {
-			opts.FileExt = "pl"
 			opts.Command = "perl runbox.pl"
+			opts.FileExt = "pl"
 		},
 		"php": func(*types.RunOpts) {
+			opts.Command = "php runbox.php"
 			opts.ModifySourceFunc = func(source string) string {
 				source = strings.TrimLeft(source, " \t\n")
 				if source[:5] != "<?php" {
@@ -161,60 +156,60 @@ func getRunOpts(input types.MultiInput) (*types.RunOpts, error) {
 				}
 				return source
 			}
-			opts.Command = "php runbox.php"
 		},
 		"powershell": func(*types.RunOpts) {
 			opts.Command = "pwsh runbox.ps"
 			opts.FileExt = "ps"
-			opts.PidsLimit = 50
 		},
 		"python": func(*types.RunOpts) {
 			opts.Command = "python runbox.py"
 			opts.FileExt = "py"
 		},
 		"r": func(*types.RunOpts) {
+			opts.Command = "Rscript runbox.r"
 			opts.ModifySourceFunc = func(source string) string {
 				return "png(width=500,height=400);\n" + source + "\n" +
 					`cat('\n==` + input.RunID + `==\n'); options(echo=F); invisible(dev.off());` +
 					`system('find . -name "*.pdf" -exec mogrify -density 80 -format png {} \\;',ignore.stdout=T,ignore.stderr=F);` +
 					`system('ls Rplot00?.png 2>/dev/null | head -2 | xargs -i sh -c "echo; base64 -w0 {}"')`
 			}
-			opts.Command = "Rscript runbox.r"
-			opts.PidsLimit = 20
 		},
 		"ruby": func(*types.RunOpts) {
-			opts.FileExt = "rb"
 			opts.Command = "ruby runbox.rb"
+			opts.FileExt = "rb"
 		},
 		"sqlite3": func(*types.RunOpts) {
-			opts.FileExt = "sql"
-			source := input.Files[0].Content
+			source := input.Files[0].Text
+			input.Files[0].Text = source
 			if strings.HasPrefix(source, ".") {
 				opts.Command = "sqlite3 chinook.db " + source
 			} else {
 				opts.Command = "sqlite3 -header chinook.db < runbox.sql"
 			}
-			input.Files[0].Content = source
+			opts.FileExt = "sql"
 		},
 	}
 	f, ok := langFunc[input.Lang]
 	if !ok {
-		return nil, types.ErrInvalidLanguage
+		return nil, ErrInvalidLanguage
 	}
 	f(opts)
 	return opts, nil
 }
 
-func Run(input types.MultiInput, extraOpts ...map[string]int) (*types.Output, error) {
+func Run(input Input, extraOpts ...map[string]int) (*types.Output, error) {
+	if len(input.Files) == 0 {
+		return nil, ErrNoFiles
+	}
 	if input.RunID == "" {
 		input.RunID = runid.New("multi", input.Lang)
 	}
 	opts, err := getRunOpts(input)
 	if err != nil {
-		if err == types.ErrInvalidLanguage {
-			return nil, types.ErrInvalidLanguage
+		if err != ErrInvalidLanguage {
+			klog.Warningf("unknown err: %s", err.Error())
 		}
-		return nil, fmt.Errorf("getRunOpts err: %w", err)
+		return nil, err
 	}
 
 	// override extraOpts
@@ -231,10 +226,17 @@ func Run(input types.MultiInput, extraOpts ...map[string]int) (*types.Output, er
 	if err != nil {
 		return nil, fmt.Errorf("writeFiles err: %w", err)
 	}
-	command := fmt.Sprintf("%s %d %s -c '/usr/bin/time -f @@%s@@%%E,%%U,%%S,%%M@@ %s'", opts.TimeoutCommand, opts.TimeoutSeconds, opts.Shell, input.RunID, opts.Command)
+
+	// timedCommand
+	var command = opts.Command
+	if !strings.Contains(command, "TIME") {
+		command = "TIME " + command
+	}
+	command = strings.Replace(command, "TIME", "/usr/bin/time -f @@"+input.RunID+"@@%E,%U,%S,%M@@", 1)
+	command = fmt.Sprintf("%s %d %s -c '%s'", opts.TimeoutCommand, opts.TimeoutSeconds, opts.Shell, command)
 	dockerOptions := docker.Options{
 		RunID:          input.RunID,
-		PidsLimit:      opts.PidsLimit,
+		PidsLimit:      300,
 		TimeoutSeconds: 60,
 		OutputLimit:    8000,
 		Image:          fmt.Sprintf("jmnote/runbox:%s", input.Lang),
@@ -254,7 +256,7 @@ func Run(input types.MultiInput, extraOpts ...map[string]int) (*types.Output, er
 	return toOutput(runResult, input.RunID), nil
 }
 
-func writeFiles(input types.MultiInput, opts *types.RunOpts) ([]string, error) {
+func writeFiles(input Input, opts *types.RunOpts) ([]string, error) {
 	bindSrcRoot := "/data/files/" + input.RunID
 	bindSrcDir := bindSrcRoot + opts.VolSubPath
 	bindDstDir := opts.WorkingDir + opts.VolSubPath
@@ -264,7 +266,7 @@ func writeFiles(input types.MultiInput, opts *types.RunOpts) ([]string, error) {
 	var binds []string
 	for _, f := range input.Files {
 		fileName := f.Name
-		content := f.Content
+		content := f.Text
 		if fileName == "" {
 			fileName = opts.FileName + "." + opts.FileExt
 		}

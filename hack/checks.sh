@@ -5,6 +5,7 @@ set -xeuo pipefail
 go mod tidy
 go fmt ./...
 go vet ./...
+go test ./... -v --failfast
 
 bash hack/go-licenses.sh
 bash hack/gocyclo.sh
