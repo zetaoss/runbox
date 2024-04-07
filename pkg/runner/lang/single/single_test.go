@@ -19,14 +19,14 @@ func TestRun_error(t *testing.T) {
 		source    string
 		wantError string
 	}{
-		{"", "", "no source"},
-		{"X", "", "no source"},
-		{"bash", "", "no source"},
-		{"X", "echo hello", "invalid language"},
+		{"", "", "ErrNoSource"},
+		{"X", "", "ErrNoSource"},
+		{"bash", "", "ErrNoSource"},
+		{"X", "echo hello", "ErrInvalidLanguage"},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.lang, func(t *testing.T) {
-			input := types.SingleInput{Lang: tc.lang, Source: tc.source}
+			input := Input{Lang: tc.lang, Source: tc.source}
 			output, err := Run(input)
 			require.EqualError(t, err, tc.wantError)
 			require.Nil(t, output)
@@ -55,7 +55,7 @@ func TestRun_simple(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.lang, func(t *testing.T) {
-			input := types.SingleInput{Lang: tc.lang, Source: tc.source}
+			input := Input{Lang: tc.lang, Source: tc.source}
 			output, err := Run(input)
 			require.NoError(t, err)
 			// ignore fields
@@ -86,7 +86,7 @@ func TestRun_db(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.lang, func(t *testing.T) {
-			input := types.SingleInput{Lang: tc.lang, Source: tc.source}
+			input := Input{Lang: tc.lang, Source: tc.source}
 			output, err := Run(input)
 			require.NoError(t, err)
 			// ignore fields
@@ -180,7 +180,7 @@ echo "Hello, World!";
 	}
 	for _, tc := range testCases {
 		t.Run(tc.lang, func(t *testing.T) {
-			input := types.SingleInput{Lang: tc.lang, Source: tc.source}
+			input := Input{Lang: tc.lang, Source: tc.source}
 			output, err := Run(input)
 			require.NoError(t, err)
 			// ignore fields
@@ -197,15 +197,15 @@ func TestRun_timeout(t *testing.T) {
 		{"bash", `echo hello`, &types.Output{Logs: []string{"0hello"}}},
 		{"bash", `echo hello; echo world`, &types.Output{Logs: []string{"0hello", "0world"}}},
 
-		{"bash", `echo hello; sleep 3`, &types.Output{Logs: []string{"0hello"}, Warning: types.WarnTimeout}},
-		{"bash", `sleep 3; echo hello`, &types.Output{Logs: []string{}, Warning: types.WarnTimeout}},
-		{"bash", `echo hello; echo world; sleep 3`, &types.Output{Logs: []string{"0hello", "0world"}, Warning: types.WarnTimeout}},
-		{"bash", `echo hello; sleep 3; echo world`, &types.Output{Logs: []string{"0hello"}, Warning: types.WarnTimeout}},
-		{"bash", `sleep 3; echo hello; echo world`, &types.Output{Logs: []string{}, Warning: types.WarnTimeout}},
+		{"bash", `echo hello; sleep 3`, &types.Output{Logs: []string{"0hello"}, Warnings: []string{types.WarnTimeout}}},
+		{"bash", `sleep 3; echo hello`, &types.Output{Logs: []string{}, Warnings: []string{types.WarnTimeout}}},
+		{"bash", `echo hello; echo world; sleep 3`, &types.Output{Logs: []string{"0hello", "0world"}, Warnings: []string{types.WarnTimeout}}},
+		{"bash", `echo hello; sleep 3; echo world`, &types.Output{Logs: []string{"0hello"}, Warnings: []string{types.WarnTimeout}}},
+		{"bash", `sleep 3; echo hello; echo world`, &types.Output{Logs: []string{}, Warnings: []string{types.WarnTimeout}}},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.lang, func(t *testing.T) {
-			input := types.SingleInput{Lang: tc.lang, Source: tc.source}
+			input := Input{Lang: tc.lang, Source: tc.source}
 			output, err := Run(input, map[string]int{"timeoutSeconds": 1})
 			require.NoError(t, err)
 			// ignore fields

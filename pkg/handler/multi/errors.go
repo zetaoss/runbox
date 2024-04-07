@@ -1,4 +1,4 @@
-package single
+package multi
 
 type Error string
 

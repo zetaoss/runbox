@@ -1,10 +1,10 @@
-package single
+package multi
 
 import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/zetaoss/runbox/pkg/runner/lang/single"
+	"github.com/zetaoss/runbox/pkg/runner/lang/multi"
 	"github.com/zetaoss/runbox/pkg/runner/lang/types"
 	"k8s.io/klog/v2"
 )
@@ -18,17 +18,17 @@ type ResponseObj struct {
 var fakeErr Error = NoError
 
 func Run(c *gin.Context) {
-	var input single.Input
+	var input multi.Input
 	if err := c.BindJSON(&input); err != nil || fakeErr == ErrBindJSON {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "error": ErrBindJSON})
 		return
 	}
-	output, err := single.Run(input)
+	output, err := multi.Run(input)
 	if err != nil || fakeErr == ErrUnknown {
 		switch err {
-		case single.ErrNoSource:
+		case multi.ErrNoFiles:
 			c.JSON(http.StatusBadRequest, gin.H{"status": "error", "error": err.Error()})
-		case single.ErrInvalidLanguage:
+		case multi.ErrInvalidLanguage:
 			c.JSON(http.StatusBadRequest, gin.H{"status": "error", "error": err.Error()})
 		default:
 			klog.Warningf("unknown err: %s", err)

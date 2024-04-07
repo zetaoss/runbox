@@ -1,37 +1,17 @@
 package types
 
-type File struct {
-	Name    string `json:"name"`
-	Content string `json:"content"`
-	IsMain  bool   `json:"isMain,omitempty"`
-}
-
-type SingleInput struct {
-	RunID  string `json:"-"`
-	Lang   string `json:"lang"`
-	Source string `json:"source"`
-	Hash   string `json:"hash"`
-}
-
-type MultiInput struct {
-	RunID string `json:"-"`
-	Lang  string `json:"lang"`
-	Files []File `json:"files"`
-	Hash  string `json:"hash"`
-}
-
 const (
-	WarnTimeout = 1 << iota
-	WarnOutputLimitReached
+	WarnTimeout            = "WarnTimeout"
+	WarnOutputLimitReached = "WarnOutputLimitReached"
 )
 
 type Output struct {
-	Logs    []string `json:"logs"`
-	Images  []string `json:"images,omitempty"`
-	Time    string   `json:"time"`
-	CPU     float32  `json:"cpu"`
-	MEM     float32  `json:"mem"`
-	Warning int      `json:"warning,omitempty"`
+	Logs     []string `json:"logs"`
+	Images   []string `json:"images,omitempty"`
+	Time     string   `json:"time"`
+	CPU      float32  `json:"cpu"`
+	MEM      float32  `json:"mem"`
+	Warnings []string `json:"warnings,omitempty"`
 }
 
 type RunOpts struct {
@@ -39,7 +19,6 @@ type RunOpts struct {
 	Env              []string
 	FileName         string
 	FileExt          string
-	PidsLimit        int
 	ModifySourceFunc func(string) string
 	Shell            string
 	TimeoutCommand   string
