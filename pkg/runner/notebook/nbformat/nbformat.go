@@ -1,4 +1,4 @@
-package notebook
+package nbformat
 
 type Notebook struct {
 	Metadata      Metadata `json:"metadata"`
@@ -52,12 +52,12 @@ type JupyterMetadata struct {
 }
 
 type Output struct {
-	OutputType string                 `json:"output_type"`
-	Name       string                 `json:"name,omitempty"`
-	Text       []string               `json:"text,omitempty"`
-	Ename      string                 `json:"ename,omitempty"`  // Exception name
-	Evalue     string                 `json:"evalue,omitempty"` // Exception value
-	Traceback  []string               `json:"traceback,omitempty"`
-	Data       map[string]interface{} `json:"data,omitempty"`
-	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	OutputType     string                 `json:"output_type"`
+	Name           string                 `json:"name,omitempty"`
+	Text           []string               `json:"text,omitempty"`
+	ExceptionName  string                 `json:"ename,omitempty"`
+	Exceptionvalue string                 `json:"evalue,omitempty"`
+	Traceback      []string               `json:"traceback,omitempty"`
+	Data           map[string]interface{} `json:"data,omitempty"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 }
