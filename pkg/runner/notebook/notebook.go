@@ -10,60 +10,28 @@ import (
 	"github.com/zetaoss/runbox/pkg/util/runid"
 )
 
-type Language string
-
-const (
-	LanguageR      = Language("R")
-	LanguagePython = Language("Python")
-)
-
-func (l Language) Name() string {
-	switch l {
-	case LanguageR:
-		return "R"
-	case LanguagePython:
-		return "python"
-	default:
-		return ""
-	}
-}
-
-func (l Language) Lower() string {
-	switch l {
-	case LanguageR:
-		return "r"
-	case LanguagePython:
-		return "python"
-	default:
-		return ""
-	}
-}
-
 type Input struct {
-	RunID     string
-	Language  Language
-	CellTexts [][]string
+	RunID     string     `json:"-"`
+	Lang      string     `json:"lang"`
+	CellTexts [][]string `json:"cellTexts"`
 }
 
 type Output struct {
-	Metadata    nbformat.Metadata
-	CellOutputs [][]nbformat.Output
+	Metadata    nbformat.Metadata   `json:"metadata"`
+	CellOutputs [][]nbformat.Output `json:"cellOutputs"`
 }
 
 func toOutput(result *docker.Result) (*Output, error) {
-	fmt.Println(result)
 	jsonText := ""
 	for _, l := range result.Logs {
 		if l.Stream == "stdout" {
 			jsonText += l.Log
 		}
 	}
-	// fmt.Println("jsonText===", jsonText)
 	var nb nbformat.Notebook
 	if err := json.Unmarshal([]byte(jsonText), &nb); err != nil {
 		return nil, err
 	}
-	fmt.Printf("nb===%#v\n", nb)
 	var cellOutputs [][]nbformat.Output
 	for _, cell := range nb.Cells {
 		cellOutputs = append(cellOutputs, cell.Outputs)
@@ -95,17 +63,16 @@ func Run(input Input) (*Output, error) {
 		NBFormat:      4,
 		NBFormatMinor: 4,
 	}
-	switch input.Language {
-	case LanguageR:
+	switch input.Lang {
+	case "r":
 		nb.Metadata.Kernelspec.Name = "ir"
 		nb.Metadata.LanguageInfo.Name = "R"
-	case LanguagePython:
+	case "python":
 		nb.Metadata.LanguageInfo.Name = "python"
 	default:
 		return nil, ErrInvalidLanguage
 	}
 	var cells = []nbformat.Cell{}
-	fmt.Printf("input===%#v\n", input)
 	for _, ct := range input.CellTexts {
 		cells = append(cells, nbformat.Cell{
 			CellType: "code",
@@ -114,8 +81,7 @@ func Run(input Input) (*Output, error) {
 		})
 	}
 	nb.Cells = cells
-	fmt.Printf("nb===%#v\n", nb)
-	runID := runid.New("notebook", string(input.Language.Lower()))
+	runID := runid.New("notebook", input.Lang)
 	binds, err := writeNotebookFile(nb, runID)
 	if err != nil {
 		return nil, err
@@ -123,7 +89,7 @@ func Run(input Input) (*Output, error) {
 	command := "jupyter nbconvert --execute --to notebook --allow-errors --stdout my.ipynb"
 	opts := docker.Options{
 		RunID:     runID,
-		Image:     fmt.Sprintf("jmnote/runbox:%s-notebook", input.Language.Lower()),
+		Image:     fmt.Sprintf("jmnote/runbox:%s-notebook", input.Lang),
 		Binds:     binds,
 		PidsLimit: 40,
 		Command:   command,

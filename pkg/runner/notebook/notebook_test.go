@@ -18,11 +18,11 @@ func TestRun(t *testing.T) {
 			nil, "ErrInvalidLanguage",
 		},
 		{
-			Input{Language: "xxx"},
+			Input{Lang: "xxx"},
 			nil, "ErrInvalidLanguage",
 		},
 		{
-			Input{Language: "Python"},
+			Input{Lang: "python"},
 			&Output{
 				nbformat.Metadata{
 					LanguageInfo: nbformat.LanguageInfo{Name: "python", CodemirrorMode: map[string]interface{}{"name": "ipython", "version": float64(3)}, FileExtension: ".py", Mimetype: "text/x-python", PygmentsLexer: "ipython3"},
@@ -31,7 +31,26 @@ func TestRun(t *testing.T) {
 			}, "",
 		},
 		{
-			Input{Language: "R"},
+			Input{Lang: "python", CellTexts: [][]string{
+				{
+					"print(\"hello1\")\n",
+					"print(\"hello2\")\n",
+				},
+				{
+					"print(\"world3\")\n",
+					"print(\"world4\")\n",
+				},
+			}},
+			&Output{
+				Metadata: nbformat.Metadata{Kernelspec: nbformat.Kernelspec{}, LanguageInfo: nbformat.LanguageInfo{Name: "python", CodemirrorMode: map[string]interface{}{"name": "ipython", "version": float64(3)}, FileExtension: ".py", Mimetype: "text/x-python", PygmentsLexer: "ipython3"}},
+				CellOutputs: [][]nbformat.Output{
+					{{OutputType: "stream", Name: "stdout", Text: []string{"hello1\n", "hello2\n"}}},
+					{{OutputType: "stream", Name: "stdout", Text: []string{"world3\n", "world4\n"}}},
+				},
+			}, "",
+		},
+		{
+			Input{Lang: "r"},
 			&Output{
 				Metadata: nbformat.Metadata{
 					Kernelspec:   nbformat.Kernelspec{Name: "ir"},
@@ -42,7 +61,7 @@ func TestRun(t *testing.T) {
 		},
 		{
 			Input{
-				Language: "R",
+				Lang: "r",
 				CellTexts: [][]string{
 					{
 						`print("hello")`,
@@ -78,7 +97,7 @@ func TestRun(t *testing.T) {
 		},
 		{
 			Input{
-				Language: "R",
+				Lang: "r",
 				CellTexts: [][]string{
 					{
 						`library(ggplot2)`,
@@ -116,7 +135,7 @@ func TestRun(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		t.Run(tc.input.Language.Lower(), func(t *testing.T) {
+		t.Run(tc.input.Lang, func(t *testing.T) {
 			output, err := Run(tc.input)
 			if tc.wantError == "" {
 				require.NoError(t, err)
