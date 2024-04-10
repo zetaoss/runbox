@@ -34,12 +34,12 @@ type Author struct {
 }
 
 type Cell struct {
-	ID             string        `json:"id,omitempty"`
-	CellType       string        `json:"cell_type"` // "code"
-	Metadata       *CellMetadata `json:"metadata"`
-	Source         []string      `json:"source"`
-	ExecutionCount *int          `json:"execution_count,omitempty"`
-	Outputs        []Output      `json:"outputs,omitempty"`
+	ID             string       `json:"id,omitempty"`
+	CellType       string       `json:"cell_type"` // "code"
+	Metadata       CellMetadata `json:"metadata"`
+	Source         []string     `json:"source"`
+	ExecutionCount *int         `json:"execution_count"`
+	Outputs        []Output     `json:"outputs"`
 }
 
 type CellMetadata struct {

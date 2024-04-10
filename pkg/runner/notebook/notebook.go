@@ -10,48 +10,65 @@ import (
 	"github.com/zetaoss/runbox/pkg/util/runid"
 )
 
-type Lang string
+type Language string
 
 const (
-	LangR      = Lang("r")
-	LangPython = Lang("python")
+	LanguageR      = Language("R")
+	LanguagePython = Language("Python")
 )
 
-func (l Lang) Language() string {
+func (l Language) Name() string {
 	switch l {
-	case LangR:
+	case LanguageR:
 		return "R"
-	case LangPython:
-		return "Python"
+	case LanguagePython:
+		return "python"
+	default:
+		return ""
+	}
+}
+
+func (l Language) Lower() string {
+	switch l {
+	case LanguageR:
+		return "r"
+	case LanguagePython:
+		return "python"
 	default:
 		return ""
 	}
 }
 
 type Input struct {
-	RunID string
-	Lang  Lang
-	Texts []string
+	RunID     string
+	Language  Language
+	CellTexts [][]string
 }
 
 type Output struct {
-	Metadata nbformat.Metadata
-	Cells    []nbformat.Cell
+	Metadata    nbformat.Metadata
+	CellOutputs [][]nbformat.Output
 }
 
 func toOutput(result *docker.Result) (*Output, error) {
+	fmt.Println(result)
 	jsonText := ""
 	for _, l := range result.Logs {
 		if l.Stream == "stdout" {
 			jsonText += l.Log
 		}
 	}
+	// fmt.Println("jsonText===", jsonText)
 	var nb nbformat.Notebook
 	if err := json.Unmarshal([]byte(jsonText), &nb); err != nil {
 		return nil, err
 	}
-	fmt.Println(nb)
-	return &Output{}, nil
+	fmt.Printf("nb===%#v\n", nb)
+	var cellOutputs [][]nbformat.Output
+	for _, cell := range nb.Cells {
+		cellOutputs = append(cellOutputs, cell.Outputs)
+	}
+	return &Output{Metadata: nb.Metadata, CellOutputs: cellOutputs}, nil
 }
 
 func writeNotebookFile(nb nbformat.Notebook, runID string) ([]string, error) {
@@ -75,21 +92,30 @@ func writeNotebookFile(nb nbformat.Notebook, runID string) ([]string, error) {
 
 func Run(input Input) (*Output, error) {
 	var nb = nbformat.Notebook{
-		Metadata: nbformat.Metadata{
-			LanguageInfo: nbformat.LanguageInfo{Name: input.Lang.Language()},
-		},
 		NBFormat:      4,
 		NBFormatMinor: 4,
-		Cells:         []nbformat.Cell{},
 	}
-	switch input.Lang {
-	case LangR:
-		nb.Metadata.Kernelspec = nbformat.Kernelspec{Name: "ir", DisplayName: "R", Language: "R"}
-	case LangPython:
+	switch input.Language {
+	case LanguageR:
+		nb.Metadata.Kernelspec.Name = "ir"
+		nb.Metadata.LanguageInfo.Name = "R"
+	case LanguagePython:
+		nb.Metadata.LanguageInfo.Name = "python"
 	default:
 		return nil, ErrInvalidLanguage
 	}
-	runID := runid.New("notebook", string(input.Lang))
+	var cells = []nbformat.Cell{}
+	fmt.Printf("input===%#v\n", input)
+	for _, ct := range input.CellTexts {
+		cells = append(cells, nbformat.Cell{
+			CellType: "code",
+			Source:   ct,
+			Outputs:  []nbformat.Output{},
+		})
+	}
+	nb.Cells = cells
+	fmt.Printf("nb===%#v\n", nb)
+	runID := runid.New("notebook", string(input.Language.Lower()))
 	binds, err := writeNotebookFile(nb, runID)
 	if err != nil {
 		return nil, err
@@ -97,7 +123,7 @@ func Run(input Input) (*Output, error) {
 	command := "jupyter nbconvert --execute --to notebook --allow-errors --stdout my.ipynb"
 	opts := docker.Options{
 		RunID:     runID,
-		Image:     fmt.Sprintf("jmnote/runbox:%s-notebook", input.Lang),
+		Image:     fmt.Sprintf("jmnote/runbox:%s-notebook", input.Language.Lower()),
 		Binds:     binds,
 		PidsLimit: 40,
 		Command:   command,
