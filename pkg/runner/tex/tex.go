@@ -1,4 +1,4 @@
-package notebook
+package tex
 
 import (
 	"encoding/json"
@@ -7,19 +7,24 @@ import (
 
 	"github.com/zetaoss/runbox/pkg/docker"
 	"github.com/zetaoss/runbox/pkg/runner/notebook/nbformat"
+	"github.com/zetaoss/runbox/pkg/types"
 	"github.com/zetaoss/runbox/pkg/util/runid"
 )
 
 type Input struct {
-	RunID     string     `json:"-"`
-	Lang      string     `json:"lang"`
-	CellTexts [][]string `json:"cellTexts"`
+	RunID string `json:"-"`
+	Lang  string `json:"lang"`
+	Text  string `json:"text"`
 }
 
 type Output struct {
 	Metadata    nbformat.Metadata   `json:"metadata"`
 	CellOutputs [][]nbformat.Output `json:"cellOutputs"`
 }
+
+const (
+	ErrInvalidLanguage = types.Error("ErrInvalidLanguage")
+)
 
 func toOutput(result *docker.Result) (*Output, error) {
 	jsonText := ""
@@ -39,57 +44,32 @@ func toOutput(result *docker.Result) (*Output, error) {
 	return &Output{Metadata: nb.Metadata, CellOutputs: cellOutputs}, nil
 }
 
-func writeNotebookFile(nb nbformat.Notebook, runID string) ([]string, error) {
-	bindSrcRoot := "/tmp/runbox/files/" + runID
+func writeTexFile(input Input) ([]string, error) {
+	bindSrcRoot := "/tmp/runbox/files/" + input.RunID
 	if err := os.MkdirAll(bindSrcRoot, 0777); err != nil {
 		return nil, fmt.Errorf("MkdirAll err: %w, name: %s", err, bindSrcRoot)
 	}
-	bindSrcFile := bindSrcRoot + "/my.ipynb"
-	bindDstFile := "/home/jovyan/my.ipynb"
-	file, err := os.Create(bindSrcFile)
-	if err != nil {
-		return nil, fmt.Errorf("os.Create err: %w", err)
-	}
-	defer file.Close()
-	encoder := json.NewEncoder(file)
-	if err := encoder.Encode(nb); err != nil {
-		return nil, fmt.Errorf("encode err: %w", err)
+	bindSrcFile := bindSrcRoot + "/my.tex"
+	bindDstFile := "/home/user01/my.tex"
+	if err := os.WriteFile(bindSrcFile, []byte(input.Text), 0644); err != nil {
+		return nil, fmt.Errorf("WriteFile err: %w, name: %s", err, bindSrcFile)
 	}
 	return []string{bindSrcFile + ":" + bindDstFile}, nil
 }
 
 func Run(input Input) (*Output, error) {
-	var nb = nbformat.Notebook{
-		NBFormat:      4,
-		NBFormatMinor: 4,
-	}
-	switch input.Lang {
-	case "r":
-		nb.Metadata.Kernelspec.Name = "ir"
-		nb.Metadata.LanguageInfo.Name = "R"
-	case "python":
-		nb.Metadata.LanguageInfo.Name = "python"
-	default:
+	if input.Lang != "tex" && input.Lang != "latex" {
 		return nil, ErrInvalidLanguage
 	}
-	var cells = []nbformat.Cell{}
-	for _, ct := range input.CellTexts {
-		cells = append(cells, nbformat.Cell{
-			CellType: "code",
-			Source:   ct,
-			Outputs:  []nbformat.Output{},
-		})
-	}
-	nb.Cells = cells
-	runID := runid.New("notebook", input.Lang)
-	binds, err := writeNotebookFile(nb, runID)
+	input.RunID = runid.New("notebook", input.Lang)
+	binds, err := writeTexFile(input)
 	if err != nil {
 		return nil, err
 	}
-	command := "jupyter nbconvert --execute --to notebook --allow-errors --stdout my.ipynb"
+	command := "touch oblivoir.sty && pdflatex -halt-on-error my.tex && echo %%%%$key%%%% && convert zeta.pdf p%d.png && find p?.png | xargs -i sh -c \"echo; base64 -w0 {}\""
 	opts := docker.Options{
-		RunID:     runID,
-		Image:     fmt.Sprintf("jmnote/runbox:%s-notebook", input.Lang),
+		RunID:     input.RunID,
+		Image:     "jmnote/runbox:tex",
 		Binds:     binds,
 		PidsLimit: 40,
 		Command:   command,

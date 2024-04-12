@@ -188,6 +188,9 @@ func getRunOpts(input Input) (*types.RunOpts, error) {
 			}
 			opts.FileExt = "sql"
 		},
+		"tex": func(*types.RunOpts) {
+			opts.Command = `touch oblivoir.sty && pdflatex -halt-on-error runbox.tex && convert runbox.pdf p%d.png && echo ==` + input.RunID + `== && ls *.png 2>/dev/null | head -2 | xargs -i sh -c "echo; base64 -w0 {}"`
+		},
 	}
 	f, ok := langFunc[input.Lang]
 	if !ok {
@@ -257,7 +260,7 @@ func Run(input Input, extraOpts ...map[string]int) (*types.Output, error) {
 }
 
 func writeFiles(input Input, opts *types.RunOpts) ([]string, error) {
-	bindSrcRoot := "/data/files/" + input.RunID
+	bindSrcRoot := "/tmp/runbox/files/" + input.RunID
 	bindSrcDir := bindSrcRoot + opts.VolSubPath
 	bindDstDir := opts.WorkingDir + opts.VolSubPath
 	if err := os.MkdirAll(bindSrcDir, 0777); err != nil {

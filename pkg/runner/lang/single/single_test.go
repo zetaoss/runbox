@@ -35,6 +35,9 @@ func TestRun_error(t *testing.T) {
 }
 
 func TestRun_simple(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	testCases := []TestCaseOK{
 		// Bash
 		{"bash", `echo hello`, &types.Output{Logs: []string{"0hello"}}},
@@ -68,6 +71,9 @@ func TestRun_simple(t *testing.T) {
 }
 
 func TestRun_db(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	testCases := []TestCaseOK{
 		// MySQL
 		{"mysql", `SELECT 'Hello, World!';`, &types.Output{Logs: []string{
@@ -99,6 +105,9 @@ func TestRun_db(t *testing.T) {
 }
 
 func TestRun_multiline(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	testCases := []TestCaseOK{
 		// C
 		{"c", `

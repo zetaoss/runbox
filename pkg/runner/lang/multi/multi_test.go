@@ -77,6 +77,9 @@ func TestRun_invalid_language(t *testing.T) {
 }
 
 func TestRun_part1(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	testcases := []struct {
 		lang       string
 		file       File
@@ -170,6 +173,9 @@ fun main() {
 }
 
 func TestRun_part2(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	testcases := []struct {
 		lang       string
 		file       File
@@ -229,6 +235,40 @@ func main() {
 			"0CustomerDemographic   Product               Territory           ",
 			"0Employee              ProductDetails_V    ",
 		}}},
+	}
+	for _, tc := range testcases {
+		t.Run(tc.lang+"__", func(t *testing.T) {
+			input := Input{Lang: tc.lang, Files: []File{tc.file}}
+			output, err := Run(input)
+			require.NoError(t, err)
+
+			// ignore fields
+			output.Time = ""
+			output.CPU = 0
+			output.MEM = 0
+			require.Equal(t, tc.wantOutput, output)
+		})
+	}
+}
+
+func TestRun_tex(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	testcases := []struct {
+		lang       string
+		file       File
+		wantOutput *types.Output
+	}{
+		// Tex
+		{"tex", File{Name: "", Text: `` +
+			"\n" + `\documentclass{article}` +
+			"\n" + `\usepackage[a6paper,landscape]{geometry}` +
+			"\n" + `\begin{document}` +
+			"\n" + `Hello world!` +
+			"\n" + `\end{document}`},
+			&types.Output{Logs: []string{"0Hello, World!"}},
+		},
 	}
 	for _, tc := range testcases {
 		t.Run(tc.lang+"__", func(t *testing.T) {
