@@ -1,4 +1,4 @@
-package multi
+package lang
 
 type Error string
 

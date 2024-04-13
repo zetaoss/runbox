@@ -1,4 +1,4 @@
-package multi
+package lang
 
 import (
 	"bytes"
@@ -9,10 +9,19 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
 
 type Params map[string]string
+
+var router1 *gin.Engine
+
+func init() {
+	gin.SetMode(gin.TestMode)
+	router1 = gin.Default()
+	router1.POST("/lang", Run)
+}
 
 func TestRun_error(t *testing.T) {
 	testcases := []struct {
@@ -89,7 +98,7 @@ func TestRun_error(t *testing.T) {
 	}
 	for i, tc := range testcases {
 		t.Run(fmt.Sprintf("%d %s", i, tc.reqBody), func(t *testing.T) {
-			req := httptest.NewRequest("POST", "/multi", strings.NewReader(tc.reqBody))
+			req := httptest.NewRequest("POST", "/lang", strings.NewReader(tc.reqBody))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 			router1.ServeHTTP(w, req)
@@ -161,7 +170,7 @@ func TestRun_ok(t *testing.T) {
 	for i, tc := range testcases {
 		t.Run(fmt.Sprintf("%d %s", i, tc.reqBody), func(t *testing.T) {
 			fmt.Println("tc.reqBody=", tc.reqBody)
-			req := httptest.NewRequest("POST", "/multi", strings.NewReader(tc.reqBody))
+			req := httptest.NewRequest("POST", "/lang", strings.NewReader(tc.reqBody))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 			router1.ServeHTTP(w, req)
@@ -217,7 +226,7 @@ func TestRun_tex(t *testing.T) {
 	for i, tc := range testcases {
 		t.Run(fmt.Sprintf("%d %s", i, tc.reqBody), func(t *testing.T) {
 			fmt.Println("tc.reqBody=", tc.reqBody)
-			req := httptest.NewRequest("POST", "/multi", strings.NewReader(tc.reqBody))
+			req := httptest.NewRequest("POST", "/lang", strings.NewReader(tc.reqBody))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 			router1.ServeHTTP(w, req)
@@ -250,7 +259,7 @@ func TestRun_warnings(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run("", func(t *testing.T) {
-			req := httptest.NewRequest("POST", "/multi", strings.NewReader(tc.reqBody))
+			req := httptest.NewRequest("POST", "/lang", strings.NewReader(tc.reqBody))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 			router1.ServeHTTP(w, req)
@@ -294,7 +303,7 @@ func TestRun_fakeErr(t *testing.T) {
 			if err != nil {
 				panic("marshal request data error")
 			}
-			req := httptest.NewRequest("POST", "/multi", bytes.NewBuffer(reqBody))
+			req := httptest.NewRequest("POST", "/lang", bytes.NewBuffer(reqBody))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 			router1.ServeHTTP(w, req)

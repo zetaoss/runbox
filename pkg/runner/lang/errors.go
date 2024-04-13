@@ -1,9 +1,9 @@
-package single
+package lang
 
 type Error string
 
 const (
-	ErrNoSource        = Error("ErrNoSource")
+	ErrNoFiles         = Error("ErrNoFiles")
 	ErrDockerNew       = Error("ErrDockerNew")
 	ErrDockerRun       = Error("ErrDockerRun")
 	ErrInvalidLanguage = Error("ErrInvalidLanguage")

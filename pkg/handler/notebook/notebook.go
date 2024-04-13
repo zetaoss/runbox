@@ -4,15 +4,15 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/zetaoss/runbox/pkg/runner/lang/types"
+	"github.com/zetaoss/runbox/pkg/runner/lang"
 	"github.com/zetaoss/runbox/pkg/runner/notebook"
 	"k8s.io/klog/v2"
 )
 
 type ResponseObj struct {
-	Status string       `json:"status"`
-	Error  string       `json:"error,omitempty"`
-	Data   types.Output `json:"-"`
+	Status string      `json:"status"`
+	Error  string      `json:"error,omitempty"`
+	Data   lang.Output `json:"-"`
 }
 
 var fakeErr Error = NoError

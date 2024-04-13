@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 
@@ -123,7 +122,7 @@ func (d *Docker) collectLogs(containerID string, outputLimit int) ([]Log, bool, 
 	for scanner.Scan() {
 		var logLine Log
 		if err := json.Unmarshal(scanner.Bytes(), &logLine); err != nil {
-			log.Printf("warn: unmarshal: %s", err)
+			klog.Warningf("unmarshal err: %s", err)
 			continue
 		}
 
@@ -140,7 +139,7 @@ func (d *Docker) collectLogs(containerID string, outputLimit int) ([]Log, bool, 
 	}
 
 	if err := scanner.Err(); err != nil || fakeErr == ErrScanner {
-		log.Printf("warn: scanner: %s", err)
+		klog.Warningf("scanner err: %s", err)
 	}
 	return logs, limitReached, nil
 }
