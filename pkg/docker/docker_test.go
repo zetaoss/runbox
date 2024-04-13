@@ -30,8 +30,8 @@ func TestNewWithConfig(t *testing.T) {
 			"",
 		},
 		{
-			Config{DataDir: "/tmp/data"},
-			&Docker{DataDir: "/tmp/data", HistoryFile: "/tmp/data/history.txt"},
+			Config{DataDir: "/data"},
+			&Docker{DataDir: "/data", HistoryFile: "/data/history.txt"},
 			"",
 		},
 		{

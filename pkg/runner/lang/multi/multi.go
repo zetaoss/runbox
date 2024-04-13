@@ -93,6 +93,7 @@ func getRunOpts(input Input) (*types.RunOpts, error) {
 		FileName:         "runbox",
 		FileExt:          input.Lang,
 		ModifySourceFunc: nil,
+		Postflight:       nil,
 		Shell:            "sh",
 		TimeoutCommand:   "timeout --kill-after=1",
 		TimeoutSeconds:   10,
@@ -121,10 +122,18 @@ func getRunOpts(input Input) (*types.RunOpts, error) {
 			opts.VolSubPath = "/src"
 			opts.WorkingDir = "/demo"
 		},
+		"latex": func(*types.RunOpts) {
+			opts.Command = `touch oblivoir.sty && pdflatex -halt-on-error runbox.tex && convert -strip runbox.pdf p%d.png && echo ==` + input.RunID + `== && ls *.png 2>/dev/null | head -10 | xargs -i sh -c "echo; base64 -w0 {}"`
+			opts.Image = "jmnote/runbox:tex"
+			opts.FileExt = "tex"
+			opts.Postflight = func(o *types.Output) {
+				if len(o.Images) > 0 {
+					o.Logs = []string{}
+				}
+			}
+		},
 		"kotlin": func(*types.RunOpts) {
-			// opts.Command = "kotlinc runbox.kt && TIME java RunboxKt" // 17.7s
-			// opts.Command = "kotlinc runbox.kt -include-runtime -d runbox.jar && TIME java -jar runbox.jar" // 17.4s
-			opts.Command = "kotlinc runbox.kt -d runbox.jar &&   TIME java -jar runbox.jar" // 13.6s 17.2s
+			opts.Command = "kotlinc runbox.kt -d runbox.jar && TIME java -jar runbox.jar" // 13.6s 17.2s
 			opts.FileExt = "kt"
 			opts.TimeoutCommand = "timeout -s KILL"
 			opts.TimeoutSeconds = 30
@@ -188,6 +197,15 @@ func getRunOpts(input Input) (*types.RunOpts, error) {
 			}
 			opts.FileExt = "sql"
 		},
+		"tex": func(*types.RunOpts) {
+			opts.Command = `touch oblivoir.sty && pdflatex -halt-on-error runbox.tex && convert -strip runbox.pdf p%d.png && echo ==` + input.RunID + `== && ls *.png 2>/dev/null | head -10 | xargs -i sh -c "echo; base64 -w0 {}"`
+			opts.FileExt = "tex"
+			opts.Postflight = func(o *types.Output) {
+				if len(o.Images) > 0 {
+					o.Logs = []string{}
+				}
+			}
+		},
 	}
 	f, ok := langFunc[input.Lang]
 	if !ok {
@@ -210,6 +228,9 @@ func Run(input Input, extraOpts ...map[string]int) (*types.Output, error) {
 			klog.Warningf("unknown err: %s", err.Error())
 		}
 		return nil, err
+	}
+	if opts.Image == "" {
+		opts.Image = fmt.Sprintf("jmnote/runbox:%s", input.Lang)
 	}
 
 	// override extraOpts
@@ -239,7 +260,7 @@ func Run(input Input, extraOpts ...map[string]int) (*types.Output, error) {
 		PidsLimit:      300,
 		TimeoutSeconds: 60,
 		OutputLimit:    8000,
-		Image:          fmt.Sprintf("jmnote/runbox:%s", input.Lang),
+		Image:          opts.Image,
 		Command:        command,
 		Binds:          binds,
 		Env:            opts.Env,
@@ -253,7 +274,11 @@ func Run(input Input, extraOpts ...map[string]int) (*types.Output, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Run err: %w", err)
 	}
-	return toOutput(runResult, input.RunID), nil
+	output := toOutput(runResult, input.RunID)
+	if opts.Postflight != nil {
+		opts.Postflight(output)
+	}
+	return output, nil
 }
 
 func writeFiles(input Input, opts *types.RunOpts) ([]string, error) {

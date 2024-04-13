@@ -13,7 +13,10 @@ staticcheck:
 	bash hack/staticcheck.sh
 
 test:
-	go test ./... --failfast -v
+	bash hack/go-test.sh
+
+short:
+	bash hack/go-test.sh -short
 
 cover:
 	go test ./... --failfast -coverprofile /tmp/coverage.out
