@@ -124,7 +124,7 @@ func getRunOpts(input Input) (*types.RunOpts, error) {
 		},
 		"latex": func(*types.RunOpts) {
 			opts.Command = `touch oblivoir.sty && pdflatex -halt-on-error runbox.tex && convert -strip runbox.pdf p%d.png && echo ==` + input.RunID + `== && ls *.png 2>/dev/null | head -10 | xargs -i sh -c "echo; base64 -w0 {}"`
-			opts.Image = fmt.Sprintf("jmnote/runbox:tex")
+			opts.Image = "jmnote/runbox:tex"
 			opts.FileExt = "tex"
 			opts.Postflight = func(o *types.Output) {
 				if len(o.Images) > 0 {

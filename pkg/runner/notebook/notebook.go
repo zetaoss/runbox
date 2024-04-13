@@ -40,7 +40,7 @@ func toOutput(result *docker.Result) (*Output, error) {
 }
 
 func writeNotebookFile(nb nbformat.Notebook, runID string) ([]string, error) {
-	bindSrcRoot := "/tmp/runbox/files/" + runID
+	bindSrcRoot := "/data/files/" + runID
 	if err := os.MkdirAll(bindSrcRoot, 0777); err != nil {
 		return nil, fmt.Errorf("MkdirAll err: %w, name: %s", err, bindSrcRoot)
 	}

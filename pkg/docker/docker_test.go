@@ -26,12 +26,12 @@ func TestNewWithConfig(t *testing.T) {
 	}{
 		{
 			Config{},
-			&Docker{DataDir: "/tmp/runbox", HistoryFile: "/tmp/runbox/history.txt"},
+			&Docker{DataDir: "/data", HistoryFile: "/data/history.txt"},
 			"",
 		},
 		{
-			Config{DataDir: "/tmp/runbox"},
-			&Docker{DataDir: "/tmp/runbox", HistoryFile: "/tmp/runbox/history.txt"},
+			Config{DataDir: "/data"},
+			&Docker{DataDir: "/data", HistoryFile: "/data/history.txt"},
 			"",
 		},
 		{
