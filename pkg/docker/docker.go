@@ -33,7 +33,7 @@ func New() (*Docker, error) {
 func NewWithConfig(cfg Config) (*Docker, error) {
 	dataDir := cfg.DataDir
 	if dataDir == "" {
-		dataDir = "/tmp/runbox"
+		dataDir = "/data"
 	}
 	if err := os.MkdirAll(dataDir, 0644); err != nil {
 		return nil, fmt.Errorf("MkdirAll err: %w", err)

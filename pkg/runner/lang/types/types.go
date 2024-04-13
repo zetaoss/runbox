@@ -17,9 +17,11 @@ type Output struct {
 type RunOpts struct {
 	Command          string
 	Env              []string
+	Image            string
 	FileName         string
 	FileExt          string
 	ModifySourceFunc func(string) string
+	Postflight       func(*Output)
 	Shell            string
 	TimeoutCommand   string
 	TimeoutSeconds   int
