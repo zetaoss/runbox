@@ -1,4 +1,4 @@
-package multi
+package lang
 
 import (
 	"fmt"
@@ -8,18 +8,17 @@ import (
 	"strings"
 
 	"github.com/zetaoss/runbox/pkg/docker"
-	"github.com/zetaoss/runbox/pkg/runner/lang/types"
 	"github.com/zetaoss/runbox/pkg/util/runid"
 	"k8s.io/klog/v2"
 )
 
-func getOutputAndLogs(runResult *docker.Result, runID string) (*types.Output, []docker.Log) {
-	output := &types.Output{}
+func getOutputAndLogs(runResult *docker.Result, runID string) (*Output, []docker.Log) {
+	output := &Output{}
 	if runResult.ExitCode == 124 {
-		output.Warnings = append(output.Warnings, types.WarnTimeout)
+		output.Warnings = append(output.Warnings, WarnTimeout)
 	}
 	if runResult.OutputLimitReached {
-		output.Warnings = append(output.Warnings, types.WarnOutputLimitReached)
+		output.Warnings = append(output.Warnings, WarnOutputLimitReached)
 	}
 	logs := runResult.Logs
 	var timeIndex int = -1
@@ -49,7 +48,7 @@ func getOutputAndLogs(runResult *docker.Result, runID string) (*types.Output, []
 	return output, logs
 }
 
-func toOutput(runResult *docker.Result, runID string) *types.Output {
+func toOutput(runResult *docker.Result, runID string) *Output {
 	output, logs := getOutputAndLogs(runResult, runID)
 
 	var sepIndex int = -1
@@ -86,8 +85,8 @@ func toOutput(runResult *docker.Result, runID string) *types.Output {
 }
 
 //gocyclo:ignore
-func getRunOpts(input Input) (*types.RunOpts, error) {
-	var opts = &types.RunOpts{
+func getRunOpts(input Input) (*RunOpts, error) {
+	var opts = &RunOpts{
 		Command:          "",
 		Env:              []string{},
 		FileName:         "runbox",
@@ -100,63 +99,63 @@ func getRunOpts(input Input) (*types.RunOpts, error) {
 		VolSubPath:       "",
 		WorkingDir:       "/home/user01",
 	}
-	var langFunc = map[string]func(*types.RunOpts){
-		"bash": func(*types.RunOpts) {
+	var langFunc = map[string]func(*RunOpts){
+		"bash": func(*RunOpts) {
 			opts.Command = "/bin/bash runbox.sh"
 			opts.FileExt = "sh"
 			opts.Shell = "bash"
 		},
-		"c": func(*types.RunOpts) {
+		"c": func(*RunOpts) {
 			opts.Command = "gcc runbox.c; ./a.out"
 		},
-		"cpp": func(*types.RunOpts) {
+		"cpp": func(*RunOpts) {
 			opts.Command = "gcc -lstdc++ runbox.cpp; ./a.out"
 		},
-		"csharp": func(*types.RunOpts) {
+		"csharp": func(*RunOpts) {
 			opts.Command = "mcs runbox.cs; mono runbox.exe"
 			opts.FileExt = "cs"
 		},
-		"java": func(*types.RunOpts) {
+		"java": func(*RunOpts) {
 			opts.Command = `javac -d bin -cp "lib/*" src/*; java -cp "bin:lib/*" App && echo && echo ==` + input.RunID + `== && ls *.png 2>/dev/null | head -2 | xargs -i sh -c "echo; base64 -w0 {}"`
 			opts.FileName = "App"
 			opts.VolSubPath = "/src"
 			opts.WorkingDir = "/demo"
 		},
-		"latex": func(*types.RunOpts) {
+		"latex": func(*RunOpts) {
 			opts.Command = `touch oblivoir.sty && pdflatex -halt-on-error runbox.tex && convert -strip runbox.pdf p%d.png && echo ==` + input.RunID + `== && ls *.png 2>/dev/null | head -10 | xargs -i sh -c "echo; base64 -w0 {}"`
 			opts.Image = "jmnote/runbox:tex"
 			opts.FileExt = "tex"
-			opts.Postflight = func(o *types.Output) {
+			opts.Postflight = func(o *Output) {
 				if len(o.Images) > 0 {
 					o.Logs = []string{}
 				}
 			}
 		},
-		"kotlin": func(*types.RunOpts) {
+		"kotlin": func(*RunOpts) {
 			opts.Command = "kotlinc runbox.kt -d runbox.jar && TIME java -jar runbox.jar" // 13.6s 17.2s
 			opts.FileExt = "kt"
 			opts.TimeoutCommand = "timeout -s KILL"
 			opts.TimeoutSeconds = 30
 		},
-		"go": func(*types.RunOpts) {
+		"go": func(*RunOpts) {
 			opts.Command = "go mod tidy 2>/dev/null && TIME go run runbox.go"
 			opts.Env = []string{"TINI_SUBREAPER=1"}
 			opts.TimeoutCommand = "tini timeout"
 			opts.TimeoutSeconds = 30
 		},
-		"lua": func(*types.RunOpts) {
+		"lua": func(*RunOpts) {
 			opts.Command = "lua runbox.lua"
 		},
-		"mysql": func(*types.RunOpts) {
+		"mysql": func(*RunOpts) {
 			opts.Command = "bash /tmp/entrypoint.sh"
 			opts.FileExt = "sql"
 			opts.TimeoutSeconds = 30
 		},
-		"perl": func(*types.RunOpts) {
+		"perl": func(*RunOpts) {
 			opts.Command = "perl runbox.pl"
 			opts.FileExt = "pl"
 		},
-		"php": func(*types.RunOpts) {
+		"php": func(*RunOpts) {
 			opts.Command = "php runbox.php"
 			opts.ModifySourceFunc = func(source string) string {
 				source = strings.TrimLeft(source, " \t\n")
@@ -166,15 +165,15 @@ func getRunOpts(input Input) (*types.RunOpts, error) {
 				return source
 			}
 		},
-		"powershell": func(*types.RunOpts) {
+		"powershell": func(*RunOpts) {
 			opts.Command = "pwsh runbox.ps"
 			opts.FileExt = "ps"
 		},
-		"python": func(*types.RunOpts) {
+		"python": func(*RunOpts) {
 			opts.Command = "python runbox.py"
 			opts.FileExt = "py"
 		},
-		"r": func(*types.RunOpts) {
+		"r": func(*RunOpts) {
 			opts.Command = "Rscript runbox.r"
 			opts.ModifySourceFunc = func(source string) string {
 				return "png(width=500,height=400);\n" + source + "\n" +
@@ -183,11 +182,11 @@ func getRunOpts(input Input) (*types.RunOpts, error) {
 					`system('ls Rplot00?.png 2>/dev/null | head -2 | xargs -i sh -c "echo; base64 -w0 {}"')`
 			}
 		},
-		"ruby": func(*types.RunOpts) {
+		"ruby": func(*RunOpts) {
 			opts.Command = "ruby runbox.rb"
 			opts.FileExt = "rb"
 		},
-		"sqlite3": func(*types.RunOpts) {
+		"sqlite3": func(*RunOpts) {
 			source := input.Files[0].Text
 			input.Files[0].Text = source
 			if strings.HasPrefix(source, ".") {
@@ -197,10 +196,10 @@ func getRunOpts(input Input) (*types.RunOpts, error) {
 			}
 			opts.FileExt = "sql"
 		},
-		"tex": func(*types.RunOpts) {
+		"tex": func(*RunOpts) {
 			opts.Command = `touch oblivoir.sty && pdflatex -halt-on-error runbox.tex && convert -strip runbox.pdf p%d.png && echo ==` + input.RunID + `== && ls *.png 2>/dev/null | head -10 | xargs -i sh -c "echo; base64 -w0 {}"`
 			opts.FileExt = "tex"
-			opts.Postflight = func(o *types.Output) {
+			opts.Postflight = func(o *Output) {
 				if len(o.Images) > 0 {
 					o.Logs = []string{}
 				}
@@ -215,12 +214,12 @@ func getRunOpts(input Input) (*types.RunOpts, error) {
 	return opts, nil
 }
 
-func Run(input Input, extraOpts ...map[string]int) (*types.Output, error) {
+func Run(input Input, extraOpts ...map[string]int) (*Output, error) {
 	if len(input.Files) == 0 {
 		return nil, ErrNoFiles
 	}
 	if input.RunID == "" {
-		input.RunID = runid.New("multi", input.Lang)
+		input.RunID = runid.New("lang", input.Lang)
 	}
 	opts, err := getRunOpts(input)
 	if err != nil {
@@ -281,7 +280,7 @@ func Run(input Input, extraOpts ...map[string]int) (*types.Output, error) {
 	return output, nil
 }
 
-func writeFiles(input Input, opts *types.RunOpts) ([]string, error) {
+func writeFiles(input Input, opts *RunOpts) ([]string, error) {
 	bindSrcRoot := "/data/files/" + input.RunID
 	bindSrcDir := bindSrcRoot + opts.VolSubPath
 	bindDstDir := opts.WorkingDir + opts.VolSubPath

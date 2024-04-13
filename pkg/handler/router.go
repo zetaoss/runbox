@@ -2,15 +2,15 @@ package handler
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/zetaoss/runbox/pkg/handler/multi"
-	"github.com/zetaoss/runbox/pkg/handler/single"
+	"github.com/zetaoss/runbox/pkg/handler/lang"
+	"github.com/zetaoss/runbox/pkg/handler/notebook"
 )
 
 func NewRouter() *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 	r.GET("/-/healthy", healthy)
-	r.POST("/single", single.Run)
-	r.POST("/multi", multi.Run)
+	r.POST("/lang", lang.Run)
+	r.POST("/notebook", notebook.Run)
 	return r
 }

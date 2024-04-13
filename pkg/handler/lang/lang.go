@@ -1,34 +1,33 @@
-package single
+package lang
 
 import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/zetaoss/runbox/pkg/runner/lang/single"
-	"github.com/zetaoss/runbox/pkg/runner/lang/types"
+	"github.com/zetaoss/runbox/pkg/runner/lang"
 	"k8s.io/klog/v2"
 )
 
 type ResponseObj struct {
-	Status string       `json:"status"`
-	Error  string       `json:"error,omitempty"`
-	Data   types.Output `json:"-"`
+	Status string      `json:"status"`
+	Error  string      `json:"error,omitempty"`
+	Data   lang.Output `json:"-"`
 }
 
 var fakeErr Error = NoError
 
 func Run(c *gin.Context) {
-	var input single.Input
+	var input lang.Input
 	if err := c.BindJSON(&input); err != nil || fakeErr == ErrBindJSON {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "error": ErrBindJSON})
 		return
 	}
-	output, err := single.Run(input)
+	output, err := lang.Run(input)
 	if err != nil || fakeErr == ErrUnknown {
 		switch err {
-		case single.ErrNoSource:
+		case lang.ErrNoFiles:
 			c.JSON(http.StatusBadRequest, gin.H{"status": "error", "error": err.Error()})
-		case single.ErrInvalidLanguage:
+		case lang.ErrInvalidLanguage:
 			c.JSON(http.StatusBadRequest, gin.H{"status": "error", "error": err.Error()})
 		default:
 			klog.Warningf("unknown err: %s", err)

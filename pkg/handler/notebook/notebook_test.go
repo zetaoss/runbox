@@ -7,8 +7,17 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 )
+
+var router1 *gin.Engine
+
+func init() {
+	gin.SetMode(gin.TestMode)
+	router1 = gin.Default()
+	router1.POST("/notebook", Run)
+}
 
 func TestRun(t *testing.T) {
 	testcases := []struct {
