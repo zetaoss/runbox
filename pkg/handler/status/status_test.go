@@ -1,14 +1,21 @@
-package handler
+package status
 
 import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
 
-var router1 = NewRouter()
+var router1 *gin.Engine
+
+func init() {
+	gin.SetMode(gin.TestMode)
+	router1 = gin.Default()
+	router1.GET("/-/healthy", Healthy)
+}
 
 func TestHealthy(t *testing.T) {
 	req := httptest.NewRequest("GET", "/-/healthy", nil)

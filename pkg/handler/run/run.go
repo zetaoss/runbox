@@ -1,33 +1,33 @@
-package lang
+package run
 
 import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/zetaoss/runbox/pkg/runner/lang"
+	"github.com/zetaoss/runbox/pkg/runner/run"
 	"k8s.io/klog/v2"
 )
 
 type ResponseObj struct {
-	Status string      `json:"status"`
-	Error  string      `json:"error,omitempty"`
-	Data   lang.Output `json:"-"`
+	Status string     `json:"status"`
+	Error  string     `json:"error,omitempty"`
+	Data   run.Output `json:"-"`
 }
 
 var fakeErr Error = NoError
 
 func Run(c *gin.Context) {
-	var input lang.Input
+	var input run.Input
 	if err := c.BindJSON(&input); err != nil || fakeErr == ErrBindJSON {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "error": ErrBindJSON})
 		return
 	}
-	output, err := lang.Run(input)
+	output, err := run.Run(input)
 	if err != nil || fakeErr == ErrUnknown {
 		switch err {
-		case lang.ErrNoFiles:
+		case run.ErrNoFiles:
 			c.JSON(http.StatusBadRequest, gin.H{"status": "error", "error": err.Error()})
-		case lang.ErrInvalidLanguage:
+		case run.ErrInvalidLanguage:
 			c.JSON(http.StatusBadRequest, gin.H{"status": "error", "error": err.Error()})
 		default:
 			klog.Warningf("unknown err: %s", err)

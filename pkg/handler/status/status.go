@@ -1,4 +1,4 @@
-package handler
+package status
 
 import (
 	"net/http"
@@ -6,6 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func healthy(c *gin.Context) {
+func Healthy(c *gin.Context) {
 	c.String(http.StatusOK, "Healthy.\n")
 }
