@@ -8,7 +8,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -19,6 +21,8 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 	"k8s.io/utils/ptr"
 )
+
+const staleAgeLimitSeconds int = 300
 
 type Session struct {
 	opts      *Opts
@@ -37,6 +41,9 @@ func NewSession(cli *client.Client, opts *Opts) *Session {
 	if opts.CollectImagesCount == 0 {
 		opts.CollectImagesCount = 2
 	}
+	if opts.PullImageIfNotPresent == nil {
+		opts.PullImageIfNotPresent = ptr.To(true)
+	}
 	if opts.Shell == "" {
 		opts.Shell = "sh"
 	}
@@ -48,6 +55,39 @@ func NewSession(cli *client.Client, opts *Opts) *Session {
 		opts: opts,
 		ctx:  context.Background(),
 	}
+}
+
+func (s *Session) pruneStaleContainers() {
+	log.Println("Starting to prune stale containers...")
+
+	ctx := context.Background()
+	containers, err := s.cli.ContainerList(ctx, container.ListOptions{All: true})
+	if err != nil {
+		log.Printf("Failed to list containers: %v", err)
+		return
+	}
+
+	for _, ct := range containers {
+		containerID := ct.ID[:10]
+		containerAge := time.Since(time.Unix(ct.Created, 0))
+
+		if ct.State == "removing" || containerAge > time.Duration(staleAgeLimitSeconds)*time.Second {
+			containerName := "<unknown>"
+			if len(ct.Names) > 0 {
+				containerName = ct.Names[0]
+			}
+			log.Printf("Removing container ID: %s, Name: %s, Age: %v...", containerID, containerName, containerAge)
+
+			// Force remove container
+			err := s.cli.ContainerRemove(ctx, ct.ID, container.RemoveOptions{Force: true})
+			if err != nil {
+				log.Printf("Failed to remove container ID: %s, Name: %s, Error: %v", containerID, containerName, err)
+			} else {
+				log.Printf("Successfully removed container ID: %s, Name: %s", containerID, containerName)
+			}
+		}
+	}
+	log.Println("Container prune operation completed.")
 }
 
 func (s *Session) run() error {
@@ -83,7 +123,7 @@ func (s *Session) checkImage() error {
 	if ok {
 		return nil
 	}
-	if s.opts.PullImageIfNotPresent {
+	if *s.opts.PullImageIfNotPresent {
 		return s.pullImage()
 	}
 	return fmt.Errorf("no image: '%s'", s.opts.Image)
@@ -127,12 +167,13 @@ func (s *Session) pullImage() error {
 func (s *Session) createContainer() error {
 	resp, err := s.cli.ContainerCreate(s.ctx, &container.Config{
 		Image:      s.opts.Image,
-		Cmd:        []string{"sleep", "infinity"},
+		Cmd:        []string{"sleep", strconv.Itoa(staleAgeLimitSeconds)},
 		WorkingDir: s.opts.WorkingDir,
 		User:       s.opts.User,
 	}, &container.HostConfig{
+		AutoRemove: true,
 		Resources: container.Resources{
-			PidsLimit: ptr.To(int64(300)),
+			PidsLimit: ptr.To(int64(100)),
 		},
 	}, nil, nil, "")
 	if err != nil {

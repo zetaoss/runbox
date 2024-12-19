@@ -1,4 +1,4 @@
 {
-    "go.testTimeout": "8m",
-    "go.testFlags": ["-p","1"]
+    "go.testTimeout": "20m",
+    "go.testFlags": ["-p","1","--failfast"]
 }

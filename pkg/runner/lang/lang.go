@@ -82,7 +82,7 @@ func toBoxOpts(langOpts LangOpts) box.Opts {
 		Command:            langOpts.Command,
 		Env:                langOpts.Env,
 		Files:              files,
-		Image:              fmt.Sprintf("jmnote/runbox:%s", langOpts.Input.Lang),
+		Image:              fmt.Sprintf("ghcr.io/zetaoss/runcontainers/%s", langOpts.Input.Lang),
 		Shell:              langOpts.Shell,
 		Timeout:            langOpts.TimeoutSeconds * 1000,
 		User:               langOpts.User,
@@ -113,7 +113,7 @@ func toLangOpts(input Input) (*LangOpts, error) {
 	case "c":
 		opts.Command = "gcc runbox.c; ./a.out"
 	case "cpp":
-		opts.Command = "gcc -lstdc++ runbox.cpp; ./a.out"
+		opts.Command = "g++ runbox.cpp; ./a.out"
 	case "csharp":
 		opts.Command = "mcs runbox.cs; mono runbox.exe"
 		opts.FileExt = "cs"

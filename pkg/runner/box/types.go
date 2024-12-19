@@ -12,7 +12,7 @@ type Opts struct {
 	Env                   []string
 	Files                 []File
 	Image                 string
-	PullImageIfNotPresent bool
+	PullImageIfNotPresent *bool
 	Shell                 string
 	Timeout               int
 	User                  string
