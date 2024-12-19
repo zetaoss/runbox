@@ -1,12 +1,10 @@
 package browse
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 
 	"github.com/zetaoss/runbox/pkg/runner/box"
-	"golang.org/x/net/html"
 	"k8s.io/utils/ptr"
 )
 
@@ -16,21 +14,6 @@ type Browse struct {
 
 func New(box *box.Box) *Browse {
 	return &Browse{box}
-}
-
-func textFromNode(n *html.Node) string {
-	fmt.Println("n", n)
-	if n.Type == html.TextNode {
-		return n.Data
-	}
-	if n.Type != html.ElementNode {
-		return ""
-	}
-	var buf bytes.Buffer
-	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		buf.WriteString(textFromNode(c))
-	}
-	return buf.String()
 }
 
 func (b *Browse) Run(urlString string) (string, error) {
