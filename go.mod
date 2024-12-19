@@ -10,7 +10,7 @@ require (
 	github.com/jmnote/nbformat v0.1.7
 	github.com/maxatome/go-testdeep v1.14.0
 	github.com/stretchr/testify v1.9.0
-	golang.org/x/net v0.27.0
+	golang.org/x/net v0.33.0
 	gotest.tools/v3 v3.5.1
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
 )
