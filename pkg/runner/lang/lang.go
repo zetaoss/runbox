@@ -175,6 +175,7 @@ func toLangOpts(input Input) (*LangOpts, error) {
 		opts.FileExt = "tex"
 		opts.CollectImagesCount = 10
 		opts.Command = "touch oblivoir.sty && pdflatex -halt-on-error runbox.tex && convert runbox.pdf -strip p%d.png"
+		opts.TimeoutSeconds = 30
 		opts.User = "root"
 	default:
 		return nil, errors.ErrInvalidLanguage

@@ -8,7 +8,9 @@ run:
 
 .PHONY: test
 test:
-	go test ./... --failfast -v
+	@go test ./... -p 1 --failfast -v | \
+	sed ''/PASS/s//$(shell printf "\033[32mPASS\033[0m")/'' | \
+	sed ''/FAIL/s//$(shell printf "\033[31mFAIL\033[0m")/'' || exit 1
 
 .PHONY: cover
 cover:

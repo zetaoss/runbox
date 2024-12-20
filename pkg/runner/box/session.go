@@ -58,8 +58,6 @@ func NewSession(cli *client.Client, opts *Opts) *Session {
 }
 
 func (s *Session) pruneStaleContainers() {
-	log.Println("Starting to prune stale containers...")
-
 	ctx := context.Background()
 	containers, err := s.cli.ContainerList(ctx, container.ListOptions{All: true})
 	if err != nil {
@@ -87,7 +85,6 @@ func (s *Session) pruneStaleContainers() {
 			}
 		}
 	}
-	log.Println("Container prune operation completed.")
 }
 
 func (s *Session) run() error {

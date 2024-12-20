@@ -3,175 +3,12 @@ package lang
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zetaoss/runbox/pkg/runner/box"
 	"github.com/zetaoss/runbox/pkg/testutil"
-	"k8s.io/utils/ptr"
 )
 
-var lang1 *Lang
-
-func init() {
-	d := testutil.NewDocker()
-	lang1 = New(box.New(d))
-}
-
-func equalResult(t *testing.T, want, got *box.Result) {
-	t.Helper()
-
-	assert.Greater(t, got.CPU, want.CPU/100, "want.CPU", want.CPU)
-	assert.Greater(t, got.MEM, want.MEM/1000, "want.MEM", want.MEM)
-	assert.Less(t, got.CPU, want.CPU*100, "want.CPU", want.CPU)
-	assert.Less(t, got.MEM, want.MEM*1000, "want.MEM", want.MEM)
-	want.CPU = got.CPU
-	want.MEM = got.MEM
-
-	assert.Greater(t, got.Time, want.Time/100, "want.Time", want.Time)
-	assert.Less(t, got.Time, want.Time*100, "want.Time", want.Time)
-	want.Time = got.Time
-
-	assert.Equal(t, want, got)
-}
-
-func TestToLangOpts(t *testing.T) {
-	testcases := []struct {
-		input     Input
-		want      *LangOpts
-		wantError string
-	}{
-		{
-			Input{
-				Lang: "bash",
-				Files: []box.File{
-					{Name: "greet.txt", Body: "hello"},
-					{Body: "cat greet.txt"},
-				},
-				Main: 1,
-			},
-			&LangOpts{
-				Input:          Input{Lang: "bash", Files: []box.File{{Name: "greet.txt", Body: "hello"}, {Body: "cat greet.txt"}}, Main: 1},
-				Command:        "/bin/bash runbox.sh",
-				FileName:       "runbox",
-				FileExt:        "sh",
-				Shell:          "bash",
-				TimeoutSeconds: 10,
-				WorkingDir:     "/home/user01",
-			},
-			"",
-		},
-	}
-	for _, tc := range testcases {
-		t.Run("", func(t *testing.T) {
-			got, err := toLangOpts(tc.input)
-			if tc.wantError == "" {
-				require.NoError(t, err)
-			} else {
-				require.EqualError(t, err, tc.wantError)
-			}
-			require.Equal(t, tc.want, got)
-		})
-	}
-}
-
-func TestToBoxOpts(t *testing.T) {
-	testcases := []struct {
-		langOpts LangOpts
-		want     box.Opts
-	}{
-		{
-			LangOpts{
-				Input:          Input{Lang: "bash", Files: []box.File{{Name: "greet.txt", Body: "hello"}, {Body: "cat greet.txt"}}, Main: 1},
-				Command:        "/bin/bash runbox.sh",
-				FileName:       "runbox",
-				FileExt:        "sh",
-				Shell:          "bash",
-				TimeoutSeconds: 10,
-				WorkingDir:     "/home/user01",
-			},
-			box.Opts{
-				CollectStats:  ptr.To(true),
-				CollectImages: true,
-				Command:       "/bin/bash runbox.sh",
-				Env:           nil,
-				Files: []box.File{
-					{Name: "/home/user01/greet.txt", Body: "hello"},
-					{Name: "/home/user01/runbox.sh", Body: "cat greet.txt"},
-				},
-				Image:      "ghcr.io/zetaoss/runcontainers/bash",
-				Shell:      "bash",
-				Timeout:    10000,
-				WorkingDir: "/home/user01",
-			},
-		},
-	}
-	for _, tc := range testcases {
-		t.Run("", func(t *testing.T) {
-			got := toBoxOpts(tc.langOpts)
-			require.Equal(t, tc.want, got)
-		})
-	}
-}
-
-func TestRun_simple(t *testing.T) {
-	testcases := []struct {
-		input     Input
-		want      *box.Result
-		wantError string
-	}{
-		{
-			Input{
-				Lang: "bash",
-				Files: []box.File{
-					{Name: "greet.txt", Body: "hello"},
-					{Body: "cat greet.txt"},
-				},
-				Main: 1,
-			},
-			&box.Result{
-				Logs:     []box.Log{{Stream: 1, Log: "hello"}},
-				CPU:      9183,
-				MEM:      676,
-				Time:     196,
-				Timedout: false,
-			},
-			"",
-		},
-	}
-	for _, tc := range testcases {
-		t.Run("", func(t *testing.T) {
-			got, err := lang1.Run(tc.input)
-			if tc.wantError == "" {
-				require.NoError(t, err)
-			} else {
-				require.EqualError(t, err, tc.wantError)
-			}
-			equalResult(t, tc.want, got)
-		})
-	}
-}
-
-func TestRun_error(t *testing.T) {
-	testCases := []struct {
-		langInput Input
-		wantError string
-	}{
-		{Input{Lang: "", Files: []box.File{}}, "no files"},
-		{Input{Lang: "x", Files: []box.File{}}, "no files"},
-		{Input{Lang: "go", Files: []box.File{}}, "no files"},
-		{Input{Lang: "", Files: []box.File{{Body: `echo hello`}}}, "invalid language"},
-		{Input{Lang: "x", Files: []box.File{{Body: `echo hello`}}}, "invalid language"},
-	}
-	for _, tc := range testCases {
-		t.Run(testutil.Name(tc.langInput), func(t *testing.T) {
-			output, err := lang1.Run(tc.langInput)
-			require.Nil(t, output)
-			require.EqualError(t, err, tc.wantError)
-		})
-	}
-}
-
-func TestRun_singleFile_bash(t *testing.T) {
+func TestRun_bash(t *testing.T) {
 	testCases := []struct {
 		input Input
 		want  *box.Result
@@ -245,7 +82,7 @@ func TestRun_singleFile_bash(t *testing.T) {
 	}
 }
 
-func TestRun_singleFile_cxx(t *testing.T) {
+func TestRun_c(t *testing.T) {
 	testCases := []struct {
 		input Input
 		want  *box.Result
@@ -287,7 +124,21 @@ func TestRun_singleFile_cxx(t *testing.T) {
 				Time: 35,
 			},
 		},
-		// C++
+	}
+	for i, tc := range testCases {
+		t.Run(testutil.Name(i, tc.input), func(t *testing.T) {
+			got, err := lang1.Run(tc.input)
+			require.NoError(t, err)
+			equalResult(t, tc.want, got)
+		})
+	}
+}
+
+func TestRun_cpp(t *testing.T) {
+	testCases := []struct {
+		input Input
+		want  *box.Result
+	}{
 		{
 			Input{
 				Lang: "cpp",
@@ -305,7 +156,21 @@ func TestRun_singleFile_cxx(t *testing.T) {
 				Time: 1600,
 			},
 		},
-		// C#
+	}
+	for i, tc := range testCases {
+		t.Run(testutil.Name(i, tc.input), func(t *testing.T) {
+			got, err := lang1.Run(tc.input)
+			require.NoError(t, err)
+			equalResult(t, tc.want, got)
+		})
+	}
+}
+
+func TestRun_csharp(t *testing.T) {
+	testCases := []struct {
+		input Input
+		want  *box.Result
+	}{
 		{
 			Input{
 				Lang: "csharp",
@@ -336,57 +201,11 @@ func TestRun_singleFile_cxx(t *testing.T) {
 	}
 }
 
-func TestRun_singleFile_php(t *testing.T) {
+func TestRun_java(t *testing.T) {
 	testCases := []struct {
 		input Input
 		want  *box.Result
 	}{
-		{
-			Input{
-				Lang: "php",
-				Files: []box.File{{Body: `<?php
-						echo "Hello, World!";`}},
-			},
-			&box.Result{
-				Logs: []box.Log{
-					{Stream: 1, Log: "Hello, World!"},
-				},
-				CPU:  25300,
-				MEM:  1456,
-				Time: 114,
-			},
-		},
-		// PHP
-		{
-			Input{
-				Lang:  "php",
-				Files: []box.File{{Body: `echo "Hello, World!";`}},
-			},
-			&box.Result{
-				Logs: []box.Log{
-					{Stream: 1, Log: "Hello, World!"},
-				},
-				CPU:  25300,
-				MEM:  604,
-				Time: 114,
-			},
-		},
-	}
-	for i, tc := range testCases {
-		t.Run(testutil.Name(i, tc.input), func(t *testing.T) {
-			got, err := lang1.Run(tc.input)
-			require.NoError(t, err)
-			equalResult(t, tc.want, got)
-		})
-	}
-}
-
-func TestRun_singleFile_java_kotlin(t *testing.T) {
-	testCases := []struct {
-		input Input
-		want  *box.Result
-	}{
-		// Java
 		{
 			Input{
 				Lang: "java",
@@ -432,7 +251,21 @@ func TestRun_singleFile_java_kotlin(t *testing.T) {
 				Images: []string{"iVBORw0KGgoAAAANSUhEUgAAASwAAADICAIAAADdvUsCAAACaUlEQVR4Xu3TQW4bMRAAQf3/08pBwGLD4VqyEbiloOpgkLMUfWHf7kDqtg6A3yVCiIkQYiKEmAghJkKIiRBiIoSYCCEmQoiJEGIihJgIISZCiIkQYiKEmAghJkKIiRBiIoSYCCEmQoiJEGIihJgIISZCiIkQYiKEmAghJkKIiRBiIoSYCCEmQoiJEGIihJgIISZCiIkQYiKEmAghJkKIiRBiIoSYCCEmQoiJEGIihJgIISZCiIkQYiKEmAghJkKIiRBiIoSYCCEmQoiJEGIihJgIISZCiIkQYiKEmAghJkKIiRBiIoSYCCEmQoiJEGIihJgIISZCiIkQYiKEmAghJkKIiRBiIoSYCCEmQoiJEGIihJgIISZCiIkQYiKEmAghJkKIiRBiIoSYCCEmQoiJEGIihJgIISZCiIkQYjcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP6l+/2+LH7T1T+9msO7m293ThY/iHA5+fX2a1eHr+bw7ubbnZPFDyK8/X34av2Kq/NXc3h38+0uhRzmgacnz7Y3zPW85LE+hlfnz3P4JPPtHpPzy17Wc7Fdny2/ev2S5cLtfDkDn+TxfBfHp+Xk08V2e3jM59/z17n97hw+zHy751e+mAeWxXZ7eMzn3/PXuf3uHD7MfLtXr/wwD7zYw8zvfPLqku/O4cPMt3t+5dtItovtetpeeGy3l8xjx2K7hg8z3+558njcyxM/1k9PTtt7zpN5yXJs+bT9CQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwv/sDs/dz4IQQs5EAAAAASUVORK5CYII="},
 			},
 		},
-		// Kotlin
+	}
+	for i, tc := range testCases {
+		t.Run(testutil.Name(i, tc.input), func(t *testing.T) {
+			got, err := lang1.Run(tc.input)
+			require.NoError(t, err)
+			equalResult(t, tc.want, got)
+		})
+	}
+}
+
+func TestRun_kotlin(t *testing.T) {
+	testCases := []struct {
+		input Input
+		want  *box.Result
+	}{
 		{
 			Input{
 				Lang: "kotlin",
@@ -458,12 +291,11 @@ func TestRun_singleFile_java_kotlin(t *testing.T) {
 	}
 }
 
-func TestRun_singleFile_other_languages(t *testing.T) {
+func TestRun_go(t *testing.T) {
 	testCases := []struct {
 		input Input
 		want  *box.Result
 	}{
-		// Go
 		{
 			Input{
 				Lang: "go",
@@ -481,7 +313,21 @@ func TestRun_singleFile_other_languages(t *testing.T) {
 				Time: 608,
 			},
 		},
-		// Lua
+	}
+	for i, tc := range testCases {
+		t.Run(testutil.Name(i, tc.input), func(t *testing.T) {
+			got, err := lang1.Run(tc.input)
+			require.NoError(t, err)
+			equalResult(t, tc.want, got)
+		})
+	}
+}
+
+func TestRun_lua(t *testing.T) {
+	testCases := []struct {
+		input Input
+		want  *box.Result
+	}{
 		{
 			Input{
 				Lang:  "lua",
@@ -494,7 +340,54 @@ func TestRun_singleFile_other_languages(t *testing.T) {
 				Time: 231,
 			},
 		},
-		// Perl
+	}
+	for i, tc := range testCases {
+		t.Run(testutil.Name(i, tc.input), func(t *testing.T) {
+			got, err := lang1.Run(tc.input)
+			require.NoError(t, err)
+			equalResult(t, tc.want, got)
+		})
+	}
+}
+
+func TestRun_mysql(t *testing.T) {
+	testCases := []struct {
+		input Input
+		want  *box.Result
+	}{
+		{
+			Input{
+				Lang:  "mysql",
+				Files: []box.File{{Body: `SELECT 'Hello, World!';`}},
+			},
+			&box.Result{
+				Logs: []box.Log{
+					{Stream: 1, Log: "+---------------+"},
+					{Stream: 1, Log: "| Hello, World! |"},
+					{Stream: 1, Log: "+---------------+"},
+					{Stream: 1, Log: "| Hello, World! |"},
+					{Stream: 1, Log: "+---------------+"},
+				},
+				CPU:  814171,
+				MEM:  842256,
+				Time: 2669,
+			},
+		},
+	}
+	for i, tc := range testCases {
+		t.Run(testutil.Name(i, tc.input), func(t *testing.T) {
+			got, err := lang1.Run(tc.input)
+			require.NoError(t, err)
+			equalResult(t, tc.want, got)
+		})
+	}
+}
+
+func TestRun_perl(t *testing.T) {
+	testCases := []struct {
+		input Input
+		want  *box.Result
+	}{
 		{
 			Input{
 				Lang: "perl",
@@ -511,7 +404,66 @@ func TestRun_singleFile_other_languages(t *testing.T) {
 				Time: 40,
 			},
 		},
-		// PowerShell
+	}
+	for i, tc := range testCases {
+		t.Run(testutil.Name(i, tc.input), func(t *testing.T) {
+			got, err := lang1.Run(tc.input)
+			require.NoError(t, err)
+			equalResult(t, tc.want, got)
+		})
+	}
+}
+
+func TestRun_php(t *testing.T) {
+	testCases := []struct {
+		input Input
+		want  *box.Result
+	}{
+		{
+			Input{
+				Lang: "php",
+				Files: []box.File{{Body: `<?php
+						echo "Hello, World!";`}},
+			},
+			&box.Result{
+				Logs: []box.Log{
+					{Stream: 1, Log: "Hello, World!"},
+				},
+				CPU:  25300,
+				MEM:  1456,
+				Time: 114,
+			},
+		},
+		// PHP
+		{
+			Input{
+				Lang:  "php",
+				Files: []box.File{{Body: `echo "Hello, World!";`}},
+			},
+			&box.Result{
+				Logs: []box.Log{
+					{Stream: 1, Log: "Hello, World!"},
+				},
+				CPU:  25300,
+				MEM:  604,
+				Time: 114,
+			},
+		},
+	}
+	for i, tc := range testCases {
+		t.Run(testutil.Name(i, tc.input), func(t *testing.T) {
+			got, err := lang1.Run(tc.input)
+			require.NoError(t, err)
+			equalResult(t, tc.want, got)
+		})
+	}
+}
+
+func TestRun_powershell(t *testing.T) {
+	testCases := []struct {
+		input Input
+		want  *box.Result
+	}{
 		{
 			Input{
 				Lang:  "powershell",
@@ -524,7 +476,21 @@ func TestRun_singleFile_other_languages(t *testing.T) {
 				Time: 461,
 			},
 		},
-		// Python
+	}
+	for i, tc := range testCases {
+		t.Run(testutil.Name(i, tc.input), func(t *testing.T) {
+			got, err := lang1.Run(tc.input)
+			require.NoError(t, err)
+			equalResult(t, tc.want, got)
+		})
+	}
+}
+
+func TestRun_python(t *testing.T) {
+	testCases := []struct {
+		input Input
+		want  *box.Result
+	}{
 		{
 			Input{
 				Lang:  "python",
@@ -540,7 +506,21 @@ func TestRun_singleFile_other_languages(t *testing.T) {
 				Images:   []string(nil),
 			},
 		},
-		// R
+	}
+	for i, tc := range testCases {
+		t.Run(testutil.Name(i, tc.input), func(t *testing.T) {
+			got, err := lang1.Run(tc.input)
+			require.NoError(t, err)
+			equalResult(t, tc.want, got)
+		})
+	}
+}
+
+func TestRun_r(t *testing.T) {
+	testCases := []struct {
+		input Input
+		want  *box.Result
+	}{
 		{
 			Input{
 				Lang:  "r",
@@ -556,7 +536,21 @@ func TestRun_singleFile_other_languages(t *testing.T) {
 				Images:   []string(nil),
 			},
 		},
-		// Ruby
+	}
+	for i, tc := range testCases {
+		t.Run(testutil.Name(i, tc.input), func(t *testing.T) {
+			got, err := lang1.Run(tc.input)
+			require.NoError(t, err)
+			equalResult(t, tc.want, got)
+		})
+	}
+}
+
+func TestRun_ruby(t *testing.T) {
+	testCases := []struct {
+		input Input
+		want  *box.Result
+	}{
 		{
 			Input{
 				Lang:  "ruby",
@@ -582,31 +576,11 @@ func TestRun_singleFile_other_languages(t *testing.T) {
 	}
 }
 
-func TestRun_singleFile_DB(t *testing.T) {
+func TestRun_sqlite3(t *testing.T) {
 	testCases := []struct {
 		input Input
 		want  *box.Result
 	}{
-		// MySQL
-		{
-			Input{
-				Lang:  "mysql",
-				Files: []box.File{{Body: `SELECT 'Hello, World!';`}},
-			},
-			&box.Result{
-				Logs: []box.Log{
-					{Stream: 1, Log: "+---------------+"},
-					{Stream: 1, Log: "| Hello, World! |"},
-					{Stream: 1, Log: "+---------------+"},
-					{Stream: 1, Log: "| Hello, World! |"},
-					{Stream: 1, Log: "+---------------+"},
-				},
-				CPU:  814171,
-				MEM:  842256,
-				Time: 2669,
-			},
-		},
-		// SQLite
 		{
 			Input{
 				Lang:  "sqlite3",
@@ -638,7 +612,7 @@ func TestRun_singleFile_DB(t *testing.T) {
 	}
 }
 
-func TestRun_singleFile_TeX(t *testing.T) {
+func TestRun_tex(t *testing.T) {
 	testCases := []struct {
 		input Input
 		want  *box.Result
@@ -748,73 +722,6 @@ func TestRun_singleFile_TeX(t *testing.T) {
 	for i, tc := range testCases {
 		t.Run(testutil.Name(i, tc.input), func(t *testing.T) {
 			got, err := lang1.Run(tc.input)
-			require.NoError(t, err)
-			equalResult(t, tc.want, got)
-		})
-	}
-}
-
-func TestRun_timeout(t *testing.T) {
-	testCases := []struct {
-		input Input
-		want  *box.Result
-	}{
-		{
-			Input{Lang: "bash", Files: []box.File{{Body: `echo hello; sleep 3`}}},
-			&box.Result{
-				Logs:     []box.Log{{Stream: 1, Log: "hello"}},
-				Code:     0,
-				CPU:      11040,
-				MEM:      4648,
-				Time:     2000,
-				Timedout: true,
-			},
-		},
-		{
-			Input{Lang: "bash", Files: []box.File{{Body: `sleep 3; echo hello`}}},
-			&box.Result{
-				CPU:      10097,
-				MEM:      788,
-				Time:     2001,
-				Timedout: true,
-			},
-		},
-		{
-			Input{Lang: "bash", Files: []box.File{{Body: `echo hello; echo world; sleep 3`}}},
-			&box.Result{
-				Logs: []box.Log{
-					{Stream: 1, Log: "hello"},
-					{Stream: 1, Log: "world"},
-				},
-				CPU:      9588,
-				MEM:      796,
-				Time:     2001,
-				Timedout: true,
-			},
-		},
-		{
-			Input{Lang: "bash", Files: []box.File{{Body: `echo hello; sleep 3; echo world`}}},
-			&box.Result{
-				Logs:     []box.Log{{Stream: 1, Log: "hello"}},
-				CPU:      9681,
-				MEM:      804,
-				Time:     2001,
-				Timedout: true,
-			},
-		},
-		{
-			Input{Lang: "bash", Files: []box.File{{Body: `sleep 3; echo hello; echo world`}}},
-			&box.Result{
-				CPU:      9853,
-				MEM:      800,
-				Time:     2001,
-				Timedout: true,
-			},
-		},
-	}
-	for i, tc := range testCases {
-		t.Run(testutil.Name(i, tc.input), func(t *testing.T) {
-			got, err := lang1.Run(tc.input, map[string]int{"timeoutSeconds": 1})
 			require.NoError(t, err)
 			equalResult(t, tc.want, got)
 		})
