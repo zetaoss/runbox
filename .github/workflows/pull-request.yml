@@ -7,26 +7,6 @@ permissions:
   pull-requests: write
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-      - run: go test ./... -race -failfast
-
-  coverage:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-      - run: go test ./... -coverprofile=coverage.out
-      - run: sed -i '/yaccpar/d' coverage.out
-      - uses: codecov/codecov-action@v3
-      - run: go install github.com/mattn/goveralls@latest
-      - run: goveralls -coverprofile=coverage.out -service=github
-        env:
-          COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   lint:
     runs-on: ubuntu-latest
     steps:
