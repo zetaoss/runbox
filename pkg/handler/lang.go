@@ -5,12 +5,12 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/zetaoss/runbox/pkg/errors"
+	"github.com/zetaoss/runbox/pkg/apperror"
 	"github.com/zetaoss/runbox/pkg/runner/box"
 	"github.com/zetaoss/runbox/pkg/runner/lang"
 )
 
-type Result struct {
+type LangResult struct {
 	Logs     []string `json:"logs,omitempty"`
 	Code     int      `json:"code,omitempty"`
 	CPU      int      `json:"cpu,omitempty"`
@@ -29,24 +29,24 @@ func (h *Handler) lang(c *gin.Context) {
 	result, err := h.langRunner.Run(input)
 	if err != nil {
 		switch err {
-		case errors.ErrInvalidLanguage:
+		case apperror.ErrInvalidLanguage:
 			c.JSON(http.StatusBadRequest, gin.H{"error": err})
-		case errors.ErrNoFiles:
+		case apperror.ErrNoFiles:
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
 		return
 	}
-	c.JSON(http.StatusOK, toResult(result))
+	c.JSON(http.StatusOK, toLangResult(result))
 }
 
-func toResult(boxResult *box.Result) *Result {
+func toLangResult(boxResult *box.Result) *LangResult {
 	logs := make([]string, len(boxResult.Logs))
 	for i, l := range boxResult.Logs {
 		logs[i] = fmt.Sprintf("%d", l.Stream) + l.Log
 	}
-	return &Result{
+	return &LangResult{
 		Logs:     logs,
 		Code:     boxResult.Code,
 		CPU:      boxResult.CPU,

@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/zetaoss/runbox/pkg/runner/box"
 	"github.com/zetaoss/runbox/pkg/runner/lang"
+	"github.com/zetaoss/runbox/pkg/runner/notebook"
 	"github.com/zetaoss/runbox/pkg/testutil"
 )
 
@@ -15,7 +16,8 @@ var handler1 *Handler
 
 func init() {
 	d := testutil.NewDocker()
-	handler1 = New(lang.New(box.New(d)))
+	b := box.New(d)
+	handler1 = New(lang.New(b), notebook.New(b))
 }
 
 func TestHealthy(t *testing.T) {

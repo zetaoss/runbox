@@ -5,16 +5,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/zetaoss/runbox/pkg/runner/lang"
+	"github.com/zetaoss/runbox/pkg/runner/notebook"
 )
 
 type Handler struct {
-	langRunner *lang.Lang
-	router     *gin.Engine
+	langRunner     *lang.Lang
+	notebookRunner *notebook.Notebook
+	router         *gin.Engine
 }
 
-func New(langRunner *lang.Lang) *Handler {
+func New(langRunner *lang.Lang, notebookRunner *notebook.Notebook) *Handler {
 	h := &Handler{
-		langRunner: langRunner,
+		langRunner:     langRunner,
+		notebookRunner: notebookRunner,
 	}
 	h.setupRouter()
 	return h
@@ -24,7 +27,8 @@ func (h *Handler) setupRouter() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 	r.GET("/-/healthy", healthy)
-	r.POST("/run/lang", h.lang)
+	r.POST("/lang", h.lang)
+	r.POST("/notebook", h.notebook)
 	h.router = r
 }
 
