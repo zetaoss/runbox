@@ -87,11 +87,11 @@ func TestLang(t *testing.T) {
 			if err != nil {
 				panic("marshal request data error")
 			}
-			req := httptest.NewRequest("POST", "/run/lang", bytes.NewBuffer(requestBody))
+			req := httptest.NewRequest("POST", "/lang", bytes.NewBuffer(requestBody))
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()
 			handler1.router.ServeHTTP(w, req)
-			// require.Equal(t, tc.wantCode, w.Code)
+			require.Equal(t, tc.wantCode, w.Code)
 			response := w.Body.String()
 			// ignore json fields: [time, cpu, mem]
 			re := regexp.MustCompile(`(,"cpu":)([0-9.]+)(,"mem":)([0-9.]+)(,"time":)([0-9.]+)`)

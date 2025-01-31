@@ -1,4 +1,9 @@
 {
     "go.testTimeout": "20m",
-    "go.testFlags": ["-p","1","--failfast"]
+    "go.testFlags": ["-p","1","--failfast"],
+    "go.toolsEnvVars": {
+        "DOCKER_CERT_PATH": "~/.docker",
+        "DOCKER_HOST": "tcp://docker:2376",
+        "DOCKER_TLS_VERIFY": "1"
+    }
 }

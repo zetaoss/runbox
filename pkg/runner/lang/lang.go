@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/zetaoss/runbox/pkg/errors"
+	"github.com/zetaoss/runbox/pkg/apperror"
 	"github.com/zetaoss/runbox/pkg/runner/box"
 	"k8s.io/utils/ptr"
 )
@@ -42,7 +42,7 @@ type LangOpts struct {
 func (l *Lang) Run(input Input, extraOpts ...map[string]int) (*box.Result, error) {
 	langOpts, err := toLangOpts(input)
 	if err != nil {
-		if err == errors.ErrInvalidLanguage || err == errors.ErrNoFiles {
+		if err == apperror.ErrInvalidLanguage || err == apperror.ErrNoFiles {
 			return nil, err
 		}
 		return nil, fmt.Errorf("toLangOpts err: %w", err)
@@ -92,7 +92,7 @@ func toBoxOpts(langOpts LangOpts) box.Opts {
 
 func toLangOpts(input Input) (*LangOpts, error) {
 	if len(input.Files) == 0 {
-		return nil, errors.ErrNoFiles
+		return nil, apperror.ErrNoFiles
 	}
 	var opts = &LangOpts{
 		Input:          input,
@@ -178,7 +178,7 @@ func toLangOpts(input Input) (*LangOpts, error) {
 		opts.TimeoutSeconds = 30
 		opts.User = "root"
 	default:
-		return nil, errors.ErrInvalidLanguage
+		return nil, apperror.ErrInvalidLanguage
 	}
 	return opts, nil
 }

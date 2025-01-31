@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jmnote/nbformat"
-	"github.com/zetaoss/runbox/pkg/errors"
+	"github.com/zetaoss/runbox/pkg/apperror"
 	"github.com/zetaoss/runbox/pkg/runner/box"
 	"k8s.io/utils/ptr"
 )
@@ -21,6 +21,12 @@ func New(box *box.Box) *Notebook {
 func (n *Notebook) Run(input Input) (*Result, error) {
 	fileBody, err := toFileBody(input)
 	if err != nil {
+		if err == apperror.ErrInvalidLanguage {
+			return nil, err
+		}
+		if err == apperror.ErrNoSources {
+			return nil, err
+		}
 		return nil, fmt.Errorf("toFileBody err: %w", err)
 	}
 	opts := &box.Opts{
@@ -60,7 +66,10 @@ func toFileBody(input Input) (string, error) {
 		nb.Metadata.Kernelspec.Name = "python3"
 		nb.Metadata.LanguageInfo["name"] = "python"
 	default:
-		return "", errors.ErrInvalidLanguage
+		return "", apperror.ErrInvalidLanguage
+	}
+	if len(input.Sources) == 0 {
+		return "", apperror.ErrNoSources
 	}
 	for _, source := range input.Sources {
 		cell := nbformat.Cell{

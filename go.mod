@@ -10,7 +10,6 @@ require (
 	github.com/jmnote/nbformat v0.1.7
 	github.com/maxatome/go-testdeep v1.14.0
 	github.com/stretchr/testify v1.9.0
-	golang.org/x/net v0.33.0
 	gotest.tools/v3 v3.5.1
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
 )
@@ -61,6 +60,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.28.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
