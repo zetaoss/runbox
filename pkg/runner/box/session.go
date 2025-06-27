@@ -154,7 +154,12 @@ func (s *Session) pullImage() error {
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	defer func() {
+		if err := out.Close(); err != nil {
+			log.Printf("failed to close image pull reader: %v", err)
+		}
+	}()
+
 	if _, err := io.ReadAll(out); err != nil {
 		return err
 	}
@@ -183,7 +188,11 @@ func (s *Session) createContainer() error {
 func (s *Session) copyFiles() error {
 	tarBuffer := new(bytes.Buffer)
 	tarWriter := tar.NewWriter(tarBuffer)
-	defer tarWriter.Close()
+	defer func() {
+		if err := tarWriter.Close(); err != nil {
+			log.Printf("failed to close tar writer: %v", err)
+		}
+	}()
 
 	for _, file := range s.opts.Files {
 		hdr := &tar.Header{
@@ -293,7 +302,11 @@ func (s *Session) getStats() (int, int, error) {
 	if err != nil {
 		return 0, 0, err
 	}
-	defer stats.Body.Close()
+	defer func() {
+		if err := stats.Body.Close(); err != nil {
+			log.Printf("failed to close stats body: %v", err)
+		}
+	}()
 
 	var v container.StatsResponse
 	if err := json.NewDecoder(stats.Body).Decode(&v); err != nil {
@@ -312,7 +325,11 @@ func (s *Session) collectImages() error {
 	if err != nil {
 		return err
 	}
-	defer reader.Close()
+	defer func() {
+		if err := reader.Close(); err != nil {
+			log.Printf("failed to close reader: %v", err)
+		}
+	}()
 
 	tr := tar.NewReader(reader)
 	maxFileSize := 100 * 1024 // 100KiB

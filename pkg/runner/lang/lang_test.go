@@ -72,6 +72,23 @@ func TestRun_bash(t *testing.T) {
 				Time: 16,
 			},
 		},
+		{
+			Input{
+				Lang: "bash",
+				Files: []box.File{
+					{Body: `echo -n hello`},
+					{Body: `echo -n world`},
+				},
+			},
+			&box.Result{
+				Logs: []box.Log{
+					{Stream: 1, Log: "helloworld"},
+				},
+				CPU:  9052,
+				MEM:  548,
+				Time: 16,
+			},
+		},
 	}
 	for i, tc := range testCases {
 		t.Run(testutil.Name(i, tc.input), func(t *testing.T) {
@@ -434,7 +451,6 @@ func TestRun_php(t *testing.T) {
 				Time: 114,
 			},
 		},
-		// PHP
 		{
 			Input{
 				Lang:  "php",
@@ -443,6 +459,23 @@ func TestRun_php(t *testing.T) {
 			&box.Result{
 				Logs: []box.Log{
 					{Stream: 1, Log: "Hello, World!"},
+				},
+				CPU:  25300,
+				MEM:  604,
+				Time: 114,
+			},
+		},
+		{
+			Input{
+				Lang: "php",
+				Files: []box.File{
+					{Body: `echo "hello";`},
+					{Body: `echo "world";`},
+				},
+			},
+			&box.Result{
+				Logs: []box.Log{
+					{Stream: 1, Log: `helloworld`},
 				},
 				CPU:  25300,
 				MEM:  604,

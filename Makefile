@@ -1,4 +1,4 @@
-GOLANGCI_LINT_VER := v1.59.1
+GOLANGCI_LINT_VER := v2.1.6
 GO_LICENSES_VER := v1.6.0
 IMG := jmnote/runbox:runbox
 
@@ -19,7 +19,7 @@ cover:
 
 .PHONY: lint
 lint:
-	go install -v github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VER) || true
+	go install -v github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VER) || true
 	$(shell go env GOPATH)/bin/golangci-lint run
 
 .PHONY: checks
