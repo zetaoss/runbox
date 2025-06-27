@@ -2,6 +2,7 @@ package lang
 
 import (
 	"fmt"
+	"path"
 	"strings"
 
 	"github.com/zetaoss/runbox/pkg/apperror"
@@ -59,22 +60,29 @@ func (l *Lang) Run(input Input, extraOpts ...map[string]int) (*box.Result, error
 }
 
 func toBoxOpts(langOpts LangOpts) box.Opts {
-	var files []box.File
-
+	filesMap := map[string]string{}
 	for i, f := range langOpts.Input.Files {
-		fileName := f.Name
-		if fileName == "" {
-			fileName = langOpts.FileName + "." + langOpts.FileExt
-		}
+		name := resolveFullPath(f, langOpts)
+
 		if i == langOpts.Input.Main && langOpts.ModifyMainFunc != nil {
 			f.Body = langOpts.ModifyMainFunc(f.Body)
 		}
-		file := box.File{
-			Name: langOpts.WorkingDir + langOpts.FileDir + "/" + fileName,
-			Body: f.Body,
+
+		if existing, ok := filesMap[name]; ok {
+			filesMap[name] = existing + "\n" + f.Body
+		} else {
+			filesMap[name] = f.Body
 		}
-		files = append(files, file)
 	}
+
+	files := []box.File{}
+	for name, body := range filesMap {
+		files = append(files, box.File{
+			Name: name,
+			Body: body,
+		})
+	}
+
 	return box.Opts{
 		CollectStats:       ptr.To(true),
 		CollectImages:      true,
@@ -88,6 +96,14 @@ func toBoxOpts(langOpts LangOpts) box.Opts {
 		User:               langOpts.User,
 		WorkingDir:         langOpts.WorkingDir,
 	}
+}
+
+func resolveFullPath(f box.File, langOpts LangOpts) string {
+	name := f.Name
+	if name == "" {
+		name = langOpts.FileName + "." + langOpts.FileExt
+	}
+	return path.Join(langOpts.WorkingDir, langOpts.FileDir, name)
 }
 
 func toLangOpts(input Input) (*LangOpts, error) {

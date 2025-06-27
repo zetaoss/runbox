@@ -70,6 +70,18 @@ func TestLang(t *testing.T) {
 		},
 		{
 			data: map[string]any{
+				"lang": "php",
+				"files": []map[string]any{
+					{"body": "echo 'hello';\n"},
+					{"body": "echo 'world';\n"},
+				},
+				"main": 1,
+			},
+			wantCode:     200,
+			wantResponse: `{"logs":["1helloworld"],"cpu":0,"mem":0,"time":0}`, //TODO: hello world
+		},
+		{
+			data: map[string]any{
 				"lang": "tex",
 				"files": []map[string]any{
 					{
