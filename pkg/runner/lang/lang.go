@@ -146,6 +146,12 @@ func toLangOpts(input Input) (*LangOpts, error) {
 		opts.Command = "go run runbox.go"
 		opts.Env = []string{"TINI_SUBREAPER=1"}
 		opts.TimeoutSeconds = 30
+	case "latex":
+		opts.FileExt = "tex"
+		opts.CollectImagesCount = 10
+		opts.Command = "touch oblivoir.sty && pdflatex -halt-on-error runbox.tex && convert runbox.pdf -strip p%d.png"
+		opts.TimeoutSeconds = 30
+		opts.User = "root"
 	case "lua":
 		opts.Command = "lua runbox.lua"
 	case "mysql":
