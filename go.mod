@@ -1,8 +1,6 @@
 module github.com/zetaoss/runbox
 
-go 1.23.0
-
-toolchain go1.23.10
+go 1.24
 
 require (
 	github.com/distribution/reference v0.6.0
