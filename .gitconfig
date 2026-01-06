@@ -1,0 +1,8 @@
+[credential]
+        helper = store --file ~/.git-credentials
+[user]
+        email = opcore@gmail.com
+        name = jmnote
+[init]
+	defaultBranch = main
+
