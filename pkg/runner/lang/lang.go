@@ -143,7 +143,7 @@ func toLangOpts(input Input) (*LangOpts, error) {
 		opts.FileExt = "kt"
 		opts.TimeoutSeconds = 40
 	case "go":
-		opts.Command = "go run runbox.go"
+		opts.Command = "go mod tidy > /dev/null 2>&1; go run runbox.go"
 		opts.Env = []string{"TINI_SUBREAPER=1"}
 		opts.TimeoutSeconds = 30
 	case "latex":
